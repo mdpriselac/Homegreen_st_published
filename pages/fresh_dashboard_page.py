@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-from pages.modules.df_location import df_csv_path
 from pages.individual_coffee_page import load_full_dataset
 
 def fresh_dashboard():
