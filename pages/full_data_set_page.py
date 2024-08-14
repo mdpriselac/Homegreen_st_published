@@ -12,7 +12,7 @@ def load_front_page_data():
     out_df = in_df[df_display_cols].copy()
     col_renames = {'country_final':'Country',
                    'seller':'Seller',
-                   'sub_region_final':'Region(s)',
+                   'subregion_final':'Region(s)',
                    'micro_final': 'Micro Location',
                    'process_type': 'Process',
                    'Varietal Cleaned': 'Varietal(s)',
