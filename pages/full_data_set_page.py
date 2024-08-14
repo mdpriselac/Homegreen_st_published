@@ -21,6 +21,8 @@ def load_front_page_data():
                    'expired':'Expired?',
                    'quality_prediction':'Predicted Coffee Review Range'}
     out_df.rename(columns=col_renames, inplace=True)
+    out_df.reset_index(inplace=True)
+    out_df.drop(columns=['index'],inplace=True)
     return out_df
 
 def full_data_page():

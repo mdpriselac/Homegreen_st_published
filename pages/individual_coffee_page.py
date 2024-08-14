@@ -8,6 +8,8 @@ def load_full_dataset():
     obj = s3_client.get_object(Bucket=bucket, Key=db_path)
     in_df = pd.read_csv(obj['Body'],index_col=0)
     out_df = in_df.copy()
+    out_df.reset_index(inplace=True)
+    out_df.drop(columns=['index'],inplace=True)
     return out_df
 
 
