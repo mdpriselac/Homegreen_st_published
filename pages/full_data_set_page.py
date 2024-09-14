@@ -40,7 +40,8 @@ def full_data_page():
     for column, values in filters.items():
         if values:
             df_filtered = df_filtered[df_filtered[column].isin(values)]
-    
+    #sort by 'Date First Seen' column by default
+    df_filtered = df_filtered.sort_values(by='Date First Seen',ascending=False)
     selectable = st.dataframe(df_filtered,
                  selection_mode='single-row',
                  on_select='rerun')
