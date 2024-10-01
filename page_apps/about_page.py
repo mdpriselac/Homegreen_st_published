@@ -1,31 +1,37 @@
 import streamlit as st
 import pandas as pd
 import json
+from data_create import full_conn, flav_only_conn, raw_loaded_df
 
-with open('./pages/modules/assets/text/about_data_process.md', 'r') as file:
+full_conn = full_conn
+flav_only_conn = flav_only_conn
+raw_loaded_df = raw_loaded_df
+
+
+with open('./page_apps/modules/assets/text/about_data_process.md', 'r') as file:
     about_data_process = file.read()
-with open('./pages/modules/assets/text/about_flavor_wheel.md', 'r') as file:
+with open('./page_apps/modules/assets/text/about_flavor_wheel.md', 'r') as file:
     about_flavor_wheel = file.read()
-with open('./pages/modules/assets/images/base_flavor_wheel.jpg', 'rb') as file:
+with open('./page_apps/modules/assets/images/base_flavor_wheel.jpg', 'rb') as file:
     base_flavor_wheel = file.read()
-with open('./pages/modules/assets/images/original_flav_wheel.png', 'rb') as file:
+with open('./page_apps/modules/assets/images/original_flav_wheel.png', 'rb') as file:
     original_flav_wheel = file.read()
-with open('./pages/modules/assets/text/about_home_greens.md', 'r') as file:
+with open('./page_apps/modules/assets/text/about_home_greens.md', 'r') as file:
     about_home_greens = file.read()
-with open('./pages/modules/assets/text/about_data_collection.md', 'r') as file:
+with open('./page_apps/modules/assets/text/about_data_collection.md', 'r') as file:
     about_data_collection = file.read()
-with open('./pages/modules/assets/text/about_predictive_models.md', 'r') as file:
+with open('./page_apps/modules/assets/text/about_predictive_models.md', 'r') as file:
     about_predictive_models = file.read()
-with open('./pages/modules/assets/text/country_agg.md', 'r') as file:
+with open('./page_apps/modules/assets/text/country_agg.md', 'r') as file:
     country_agg_overview = file.read()
-with open('./pages/modules/assets/data//tf_idf_country_table.md','r') as file:
+with open('./page_apps/modules/assets/data//tf_idf_country_table.md','r') as file:
     country_tf_idf_table = file.read()
-with open('./pages/modules/assets/text/flavor_agg.md', 'r') as file:
+with open('./page_apps/modules/assets/text/flavor_agg.md', 'r') as file:
     flavor_agg_overview = file.read()
 
 
 #wheel images for quality buckets
-bucket_flavor_image_paths = [f'./pages/modules/assets/images/Top 15 most distinctive flavors for {i}.png' for i in range(1,8)]
+bucket_flavor_image_paths = [f'./page_apps/modules/assets/images/Top 15 most distinctive flavors for {i}.png' for i in range(1,8)]
 bucket_images = {}
 for bucket in range(1,8):
     with open(bucket_flavor_image_paths[bucket-1], 'rb') as file:

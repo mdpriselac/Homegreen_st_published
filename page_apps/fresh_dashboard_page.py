@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-from pages.individual_coffee_page import load_full_dataset
+from data_create import load_full_dataset
 
 def fresh_dashboard():
     full_df = load_full_dataset()
