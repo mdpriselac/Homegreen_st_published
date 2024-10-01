@@ -4,4 +4,4 @@ numpy
 matplotlib
 seaborn
 boto3
-chromadb
+chromadb==0.5.3
