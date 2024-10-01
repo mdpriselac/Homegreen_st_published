@@ -1,3 +1,6 @@
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import streamlit as st
 
 st.set_page_config(page_title='Green Coffee in the USA', page_icon='☕️', layout='wide', initial_sidebar_state='expanded')

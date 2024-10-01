@@ -63,7 +63,7 @@ def coffee_info(coffee_data):
     sim_c = st.container()
     sim_c.subheader('Similar Coffees')
     sim_c.write("Below you will find coffees that are similar to this one. One measure of similarity is the 'full profile' similarity. The other measure of similarity is based only on flavor profile. It can be interesting to find a coffee where the purely flavor based most similar coffees are from a different country or have a different processing method (e.g. that a coffee from Indonesia best matches coffees from East Africa when only considering flavor). That suggests you're looking at a somewhat unique coffee from the origin!")
-    full_sim,flav_sim = sim_c.columns(2)
+    full_sim,flav_sim = sim_c.tabs(['Similar Coffees (Full Profile)','Similar Coffees (Flavor Only)'])
     full_sim.subheader('Full Profile Similarity Matches')
     full_sim.write("Full Profile Similarity Matches are based on Country of Origin, Subregion, Process, Fermentation, and Flavor Notes.")
     flav_sim.subheader('Flavor Similarity Matches')
