@@ -69,41 +69,50 @@ def coffee_info(coffee_data):
     flav_sim.subheader('Flavor Similarity Matches')
     flav_sim.write("Flavor Similarity Matches are based solely on the Flavor Notes")
     col_config = {'uid':None,'Predicted Coffee Review Range':None,'Date First Seen':None,}
-    full_sim_df_only = find_full_similarity_matches(coffee_id=coffee_id,
+    
+    try:
+        full_sim_df_only = find_full_similarity_matches(coffee_id=coffee_id,
                                                     original_df=all_coffees_db,
                                                     full_coll_conn=full_conn)
-    full_sim_df = full_sim.dataframe(full_sim_df_only,
+        full_sim_df = full_sim.dataframe(full_sim_df_only,
                                      hide_index=True,
                                      on_select='rerun',
                                      selection_mode='single-row',
                                      column_config=col_config)
-    flav_sim_df_only = find_flavor_similarity_matches(coffee_id=coffee_id,
-                                                      original_df=all_coffees_db,
-                                                      flav_coll_conn=flav_only_conn)
-    flav_sim_df = flav_sim.dataframe(flav_sim_df_only,
-                                     hide_index=True,
-                                     selection_mode='single-row',
-                                     on_select='rerun',
-                                     column_config=col_config)
-    #make full_sim_df clickable
-    if len(full_sim_df.selection.rows) > 0:
-        full_selected_row_num = full_sim_df.selection.rows[0]
-        full_selected_row_df = full_sim_df_only.iloc[full_selected_row_num].name
-        st.session_state.ind = full_selected_row_df
-        if full_sim.button(label='Click here for more information on your selected coffee',key='full_sim_button'):
-            st.switch_page('page_apps/individual_coffee_page.py')
-    else:
-        full_sim.button(label='Select a coffee to see more information',disabled=True,key='full_sim_button')
-    
-    #make flav_sim_df clickable
-    if len(flav_sim_df.selection.rows) > 0:
-        flav_selected_row_num = flav_sim_df.selection.rows[0]
-        flav_selected_row_df = flav_sim_df_only.iloc[flav_selected_row_num].name
-        st.session_state.ind = flav_selected_row_df
-        if flav_sim.button(label='Click here for more information on your selected coffee',key='flav_sim_button'):
-            st.switch_page('page_apps/individual_coffee_page.py')
-    else:
-        flav_sim.button(label='Select a coffee to see more information',disabled=True,key='flav_sim_button')
+        #make full_sim_df clickable
+        if len(full_sim_df.selection.rows) > 0:
+            full_selected_row_num = full_sim_df.selection.rows[0]
+            full_selected_row_df = full_sim_df_only.iloc[full_selected_row_num].name
+            st.session_state.ind = full_selected_row_df
+            if full_sim.button(label='Click here for more information on your selected coffee',key='full_sim_button'):
+                st.switch_page('page_apps/individual_coffee_page.py')
+        else:
+            full_sim.button(label='Select a coffee to see more information',disabled=True,key='full_sim_button')
+    except:
+        full_sim.error('Unfortunately the data quality on this coffee is not high enough to generate similarity matches. Please check back later after we try to clean up the data.')
+        
+        
+    try:    
+        flav_sim_df_only = find_flavor_similarity_matches(coffee_id=coffee_id,
+                                                        original_df=all_coffees_db,
+                                                        flav_coll_conn=flav_only_conn)
+        flav_sim_df = flav_sim.dataframe(flav_sim_df_only,
+                                        hide_index=True,
+                                        selection_mode='single-row',
+                                        on_select='rerun',
+                                        column_config=col_config)
+        
+        #make flav_sim_df clickable
+        if len(flav_sim_df.selection.rows) > 0:
+            flav_selected_row_num = flav_sim_df.selection.rows[0]
+            flav_selected_row_df = flav_sim_df_only.iloc[flav_selected_row_num].name
+            st.session_state.ind = flav_selected_row_df
+            if flav_sim.button(label='Click here for more information on your selected coffee',key='flav_sim_button'):
+                st.switch_page('page_apps/individual_coffee_page.py')
+        else:
+            flav_sim.button(label='Select a coffee to see more information',disabled=True,key='flav_sim_button')
+    except:
+        flav_sim.error('Unfortunately the data quality on this coffee is not high enough to generate similarity matches. Please check back later after we try to clean up the data.')
     
     
 
