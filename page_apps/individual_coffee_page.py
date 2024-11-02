@@ -15,7 +15,7 @@ def coffee_info(coffee_data):
     coffee_id = coffee_info['uid']
     st.title(f"{coffee_info['Name']}")
     
-    key_cols = ['seller','Name','country_final','subregion_final','micro_final','Flavor Notes','process_type','Varietal Cleaned','Score','first_date_observed','expired']
+    key_cols = ['seller','Name','country_final','subregion_final','micro_final','Flavor Notes','process_type','Varietal Cleaned','Varietal','Score','first_date_observed','expired']
     empty_info = [k for k in key_cols if coffee_info[k]=='' or str(coffee_info[k]).lower().strip()=='none' or str(coffee_info[k]).lower().strip()=='nan' or str(coffee_info[k]).strip().lower()=='unknown']
     
     # Let's do a text block introducing the information on this page
@@ -38,7 +38,7 @@ def coffee_info(coffee_data):
     basic_c1.write(f"Altitude Max (masl): {coffee_info['altitude_high'] if 'altitude_high' not in empty_info else ''}")
     basic_c2.write(f"Process: {coffee_info['process_type'] if 'process_type' not in empty_info else ''}")
     basic_c2.write(f"Fermentation: {coffee_info['fermentation'] if 'fermentation' not in empty_info else ''}")
-    basic_c2.write(f'''Varietal(s): {coffee_info['Varietal Cleaned'].replace('[','').replace(']','').replace('"','').replace("'",'') if 'Varietal Cleaned' not in empty_info else ''}''')
+    basic_c2.write(f'''Varietal(s): {coffee_info['Varietal Cleaned'].replace('[','').replace(']','').replace('"','').replace("'",'') if 'Varietal Cleaned' not in empty_info else ''}{coffee_info['Varietal'].replace('[','').replace(']','').replace('"','').replace("'",'') if 'Varietal' not in empty_info else ''}''')
     
 
     # Finally, let's do a final container with three tabs

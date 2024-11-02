@@ -9,12 +9,13 @@ df_display_cols = ['seller','uid','Name','country_final','subregion_final','micr
 def load_all_coffees_df():
     in_df = load_full_dataset()
     out_df = in_df[df_display_cols].copy()
+    #merge 'Varietal Cleaned and 'Varietal' columns into 'Varietal(s)' column
+    out_df['Varietal(s)'] = out_df['Varietal Cleaned'].fillna(out_df['Varietal'])
     col_renames = {'country_final':'Country',
                    'seller':'Seller',
                    'subregion_final':'Region(s)',
                    'micro_final': 'Micro Location',
                    'process_type': 'Process',
-                   'Varietal Cleaned': 'Varietal(s)',
                    'fermentation':'Fermented?',
                    'first_date_observed':'Date First Seen',
                    'expired':'Expired?',
@@ -46,7 +47,8 @@ def full_data_page():
                               hide_index=True,
                               selection_mode='single-row',
                               on_select='rerun',
-                              column_config=col_config)
+                              column_config=col_config,
+                              column_order=['Seller','Name','Country','Region(s)','Micro Location','Flavor Notes','Varietal(s)','Process','Fermented?','Date First Seen','Expired?','Predicted Coffee Review Range'])
     
     if len(selectable.selection.rows) > 0:
         selected_row_df = df_filtered.iloc[selectable.selection.rows[0]].name
