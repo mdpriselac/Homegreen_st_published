@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 #from page_apps.modules.df_location import s3_client, bucket, db_path
 from data_create import load_full_dataset
-df_display_cols = ['seller','uid','Name','country_final','subregion_final','micro_final','Flavor Notes','process_type','fermentation','Varietal Cleaned','first_date_observed','expired','quality_prediction']
+df_display_cols = ['seller','uid','Name','country_final','subregion_final','micro_final','Flavor Notes','process_type','fermentation','Varietal Cleaned','Varietal','first_date_observed','expired','quality_prediction']
 
 
 @st.cache_data
