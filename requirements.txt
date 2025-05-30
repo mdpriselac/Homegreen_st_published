@@ -4,6 +4,6 @@ numpy
 matplotlib
 seaborn
 boto3
-chromadb==0.5.3
-protobuf==3.20.*
+chromadb
+protobuf
 pysqlite3-binary
