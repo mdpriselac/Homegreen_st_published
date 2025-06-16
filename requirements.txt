@@ -1,9 +1,15 @@
+# Core dependencies
 streamlit
 pandas
 numpy
 matplotlib
 seaborn
-boto3
-chromadb
-protobuf<=3.20.x
-pysqlite3-binary
+
+# Database integration
+supabase==2.2.0
+postgrest==0.13.0
+python-dotenv==1.0.0
+scikit-learn
+
+# Web requests
+httpx

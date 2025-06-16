@@ -1,11 +1,6 @@
 import streamlit as st
 import pandas as pd
 import json
-from data_create import full_conn, flav_only_conn, raw_loaded_df
-
-full_conn = full_conn
-flav_only_conn = flav_only_conn
-raw_loaded_df = raw_loaded_df
 
 
 with open('./page_apps/modules/assets/text/about_data_process.md', 'r') as file:
