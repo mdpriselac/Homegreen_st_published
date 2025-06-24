@@ -55,8 +55,9 @@ def full_data_page():
     )
     
     if len(selectable.selection.rows) > 0:
-        selected_row_df = df_filtered.iloc[selectable.selection.rows[0]].name
-        st.session_state.ind = selected_row_df
+        selected_row_index = selectable.selection.rows[0]
+        selected_coffee_uid = df_filtered.iloc[selected_row_index]['uid']
+        st.session_state.coffee_uid = selected_coffee_uid
         if st.button(label='Click here for more information on your selected coffee'):
             st.switch_page('page_apps/individual_coffee_page.py')
     else:

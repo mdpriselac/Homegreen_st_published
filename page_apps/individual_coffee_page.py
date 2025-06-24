@@ -4,12 +4,17 @@ Updated individual coffee page using database backend
 import streamlit as st
 import pandas as pd
 from page_apps.modules.flavor_wheel_gen import flavor_wheel_gen
-from frontend.data.database_loader import load_full_dataset, get_coffee_details
+from frontend.data.database_loader import load_full_dataset, get_coffee_details, get_coffee_by_uid
 from frontend.similarity.pgvector_similarity import find_full_similarity_matches, find_flavor_similarity_matches
 from frontend.data.database_loader import load_all_coffees_df
 
-if 'ind' not in st.session_state:
-    st.session_state.ind = 0
+if 'coffee_uid' not in st.session_state:
+    # Initialize with the first coffee's uid from the dataset
+    all_coffees = load_all_coffees_df()
+    if not all_coffees.empty:
+        st.session_state.coffee_uid = all_coffees.iloc[0]['uid']
+    else:
+        st.session_state.coffee_uid = '1'  # Fallback
 
 # Load data from database instead of CSV
 all_coffees_db = load_all_coffees_df()
@@ -174,10 +179,14 @@ def coffee_info(coffee_data):
             # Handle selection
             if len(full_sim_df.selection.rows) > 0:
                 full_selected_row_num = full_sim_df.selection.rows[0]
-                full_selected_row_df = full_sim_df_only.iloc[full_selected_row_num].name
-                st.session_state.ind = full_selected_row_df
-                if full_sim.button(label='Click here for more information on your selected coffee', key='full_sim_button'):
-                    st.switch_page('page_apps/individual_coffee_page.py')
+                selected_coffee_uid = full_sim_df_only.iloc[full_selected_row_num]['uid']
+                # Debug info
+                selected_name = full_sim_df_only.iloc[full_selected_row_num]['Name']
+                if full_sim.button(label=f'Click here for more information on: {selected_name} (ID: {selected_coffee_uid})', key='full_sim_button'):
+                    # Store the selected uid in session state
+                    st.session_state.coffee_uid = selected_coffee_uid
+                    # Since we're already on the individual coffee page, just rerun
+                    st.rerun()
             else:
                 full_sim.button(label='Select a coffee to see more information', disabled=True, key='full_sim_button')
         else:
@@ -211,10 +220,14 @@ def coffee_info(coffee_data):
             # Handle selection
             if len(flav_sim_df.selection.rows) > 0:
                 flav_selected_row_num = flav_sim_df.selection.rows[0]
-                flav_selected_row_df = flav_sim_df_only.iloc[flav_selected_row_num].name
-                st.session_state.ind = flav_selected_row_df
-                if flav_sim.button(label='Click here for more information on your selected coffee', key='flav_sim_button'):
-                    st.switch_page('page_apps/individual_coffee_page.py')
+                selected_coffee_uid = flav_sim_df_only.iloc[flav_selected_row_num]['uid']
+                # Debug info
+                selected_name = flav_sim_df_only.iloc[flav_selected_row_num]['Name']
+                if flav_sim.button(label=f'Click here for more information on: {selected_name} (ID: {selected_coffee_uid})', key='flav_sim_button'):
+                    # Store the selected uid in session state
+                    st.session_state.coffee_uid = selected_coffee_uid
+                    # Since we're already on the individual coffee page, just rerun
+                    st.rerun()
             else:
                 flav_sim.button(label='Select a coffee to see more information', disabled=True, key='flav_sim_button')
         else:
@@ -223,12 +236,42 @@ def coffee_info(coffee_data):
     except Exception:
         flav_sim.error('Unfortunately the data quality on this coffee is not high enough to generate similarity matches. Please check back later after we try to clean up the data.')
 
-def ind_coffee_page(index_val):
+def ind_coffee_page(coffee_uid):
     """Main function for individual coffee page"""
-    full_df = load_all_coffees_df()
-    index_no = st.sidebar.number_input('Enter the coffee number', min_value=0, max_value=len(full_df)-1, value=index_val, step=1)
-    coffee_data = full_df.iloc[index_no]
+    # Get coffee data by uid
+    coffee_data = get_coffee_by_uid(coffee_uid)
+    
+    if coffee_data.empty:
+        st.error(f"Coffee with ID {coffee_uid} not found.")
+        return
+    
+    # Add a selector for navigating between coffees
+    all_coffees = load_all_coffees_df()
+    coffee_names_with_uid = [f"{row['Name']} ({row['uid']})" for _, row in all_coffees.iterrows()]
+    
+    # Find current coffee in the list, or add it if not found
+    current_coffee_display = f"{coffee_data['Name']} ({coffee_uid})"
+    if current_coffee_display not in coffee_names_with_uid:
+        # Coffee is not in the initial 50, add it to the list
+        coffee_names_with_uid.insert(0, current_coffee_display)
+        current_index = 0
+    else:
+        current_index = coffee_names_with_uid.index(current_coffee_display)
+    
+    selected_coffee = st.sidebar.selectbox(
+        'Select a coffee',
+        coffee_names_with_uid,
+        index=current_index,
+        key='coffee_selector'
+    )
+    
+    # Extract uid from selection
+    selected_uid = selected_coffee.split('(')[-1].rstrip(')')
+    if selected_uid != coffee_uid:
+        st.session_state.coffee_uid = selected_uid
+        st.rerun()
+    
     coffee_info(coffee_data)
 
 # Run the page
-ind_coffee_page(st.session_state.ind)
+ind_coffee_page(st.session_state.coffee_uid)
