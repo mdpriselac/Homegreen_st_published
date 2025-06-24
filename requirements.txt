@@ -6,9 +6,9 @@ matplotlib
 seaborn
 
 # Database integration
-supabase==2.2.0
-postgrest==0.13.0
-python-dotenv==1.0.0
+supabase
+postgrest
+python-dotenv
 scikit-learn
 
 # Web requests

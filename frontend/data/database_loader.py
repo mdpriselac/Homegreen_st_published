@@ -6,7 +6,7 @@ import pandas as pd
 from typing import List, Dict, Any
 from frontend.database.supabase_client import get_supabase_client
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=3600)
 def load_full_dataset() -> pd.DataFrame:
     """
     Load full dataset from Supabase (replaces CSV loading)
@@ -58,7 +58,7 @@ def load_full_dataset() -> pd.DataFrame:
     
     return df
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=3600)
 def load_all_coffees_df() -> pd.DataFrame:
     """
     Load and format data for the full dataset page

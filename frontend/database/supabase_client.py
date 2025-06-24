@@ -16,7 +16,7 @@ class FrontendSupabaseClient:
         self.supabase_anon_key = st.secrets["supabase"]["anon_key"]
         self.client = create_client(self.supabase_url, self.supabase_anon_key)
     
-    @st.cache_data(ttl=300)  # Cache for 5 minutes
+    @st.cache_data(ttl=3600)  # Cache for 5 minutes
     def get_all_coffees(_self) -> pd.DataFrame:
         """Get all active coffees with their attributes"""
         
@@ -85,7 +85,7 @@ class FrontendSupabaseClient:
                 'altitude_low', 'altitude_high', 'observation_date', 'flavor_notes'
             ])
     
-    @st.cache_data(ttl=600)  # Cache for 10 minutes
+    @st.cache_data(ttl=3600)  # Cache for 1 hour minutes
     def get_coffee_by_id(_self, coffee_id: int) -> Dict[str, Any]:
         """Get detailed information for a specific coffee"""
         result = _self.client.table('coffees').select("""
