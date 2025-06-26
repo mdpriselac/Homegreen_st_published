@@ -10,3 +10,7 @@
 **/**/*.pyc
 *.toml
 *.chroma*
+.venv
+.venv/** */
+.streamlit
+.streamlit/**
