@@ -158,6 +158,12 @@ def coffee_info(coffee_data):
     
     col_config = {'uid': None, 'Predicted Coffee Review Range': None, 'Date First Seen': None}
     
+    # Initialize selection state to prevent first-click disruption
+    if 'full_sim_initialized' not in st.session_state:
+        st.session_state.full_sim_initialized = True
+    if 'flav_sim_initialized' not in st.session_state:
+        st.session_state.flav_sim_initialized = True
+    
     try:
         # Load full dataset for similarity matching
         full_dataset = all_coffees_db  # Use the already loaded formatted data
@@ -168,6 +174,8 @@ def coffee_info(coffee_data):
         )
         
         if not full_sim_df_only.empty:
+            # Unfortunately, dataframe selection doesn't work properly in forms
+            # So we'll use on_select='rerun' but try to minimize disruption
             full_sim_df = full_sim.dataframe(
                 full_sim_df_only,
                 hide_index=True,
@@ -180,20 +188,17 @@ def coffee_info(coffee_data):
             if len(full_sim_df.selection.rows) > 0:
                 full_selected_row_num = full_sim_df.selection.rows[0]
                 selected_coffee_uid = full_sim_df_only.iloc[full_selected_row_num]['uid']
-                # Debug info
                 selected_name = full_sim_df_only.iloc[full_selected_row_num]['Name']
-                if full_sim.button(label=f'Click here for more information on: {selected_name} (ID: {selected_coffee_uid})', key='full_sim_button'):
-                    # Store the selected uid in session state
+                if full_sim.button(label=f'Click here for more information on: {selected_name}', key='full_sim_button'):
                     st.session_state.coffee_uid = selected_coffee_uid
-                    # Since we're already on the individual coffee page, just rerun
                     st.rerun()
             else:
                 full_sim.button(label='Select a coffee to see more information', disabled=True, key='full_sim_button')
         else:
             full_sim.info("No similar coffees found for full profile matching.")
             
-    except Exception:
-        full_sim.error('Unfortunately the data quality on this coffee is not high enough to generate similarity matches. Please check back later after we try to clean up the data.')
+    except Exception as e:
+        full_sim.error(f'Error loading similarity matches: {str(e)}')
     
     # Flavor similarity
     flav_sim.subheader('Flavor Similarity Matches')
@@ -209,6 +214,8 @@ def coffee_info(coffee_data):
         )
         
         if not flav_sim_df_only.empty:
+            # Unfortunately, dataframe selection doesn't work properly in forms
+            # So we'll use on_select='rerun' but try to minimize disruption
             flav_sim_df = flav_sim.dataframe(
                 flav_sim_df_only,
                 hide_index=True,
@@ -221,20 +228,17 @@ def coffee_info(coffee_data):
             if len(flav_sim_df.selection.rows) > 0:
                 flav_selected_row_num = flav_sim_df.selection.rows[0]
                 selected_coffee_uid = flav_sim_df_only.iloc[flav_selected_row_num]['uid']
-                # Debug info
                 selected_name = flav_sim_df_only.iloc[flav_selected_row_num]['Name']
-                if flav_sim.button(label=f'Click here for more information on: {selected_name} (ID: {selected_coffee_uid})', key='flav_sim_button'):
-                    # Store the selected uid in session state
+                if flav_sim.button(label=f'Click here for more information on: {selected_name}', key='flav_sim_button'):
                     st.session_state.coffee_uid = selected_coffee_uid
-                    # Since we're already on the individual coffee page, just rerun
                     st.rerun()
             else:
                 flav_sim.button(label='Select a coffee to see more information', disabled=True, key='flav_sim_button')
         else:
             flav_sim.info("No similar coffees found for flavor-only matching.")
             
-    except Exception:
-        flav_sim.error('Unfortunately the data quality on this coffee is not high enough to generate similarity matches. Please check back later after we try to clean up the data.')
+    except Exception as e:
+        flav_sim.error(f'Error loading similarity matches: {str(e)}')
 
 def ind_coffee_page(coffee_uid):
     """Main function for individual coffee page"""
