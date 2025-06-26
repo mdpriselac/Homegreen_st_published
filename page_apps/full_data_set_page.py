@@ -13,7 +13,7 @@ def load_all_coffees_df_cached():
 def full_data_page():
     df_filtered = load_all_coffees_df_cached()
     st.header('Data Overview')
-    st.write("Below you will find the full data set. You can filter the data by selecting values in the sidebar. The data will update as you select filters. You can sort the data by clicking on the column headers. You can resize the columns by dragging them and resize the data frame by dragging the bottom right corner. Clicking on the far lefthand side of a row will select that row. Clicking the button below will take you to a page with more information on the selected coffee.")
+    st.write("Below you will find the full set of coffees that we believe are actively for sale. That accuracy may not be 100%, however, as you will see towards the bottom of the list. The list is sorted by how recently we've spotted them for sale. You can filter the data by selecting values in the sidebar. The data will update as you select filters. You can sort the data by clicking on the column headers. You can resize the columns by dragging them and resize the data frame by dragging the bottom right corner. Clicking on the far lefthand side of a row will select that row. Clicking the button below will take you to a page with more information on the selected coffee.")
 
     # Add filters
     columns_to_filter = ['Country', 'Seller','Process','Expired?']

@@ -12,10 +12,10 @@ st.set_page_config(
 
 # Database-integrated pages
 page_collection = [
-    st.Page('page_apps/about_page.py', title='About the Home Greens Project', default=True), 
-    st.Page('page_apps/full_data_set_page.py', title='All Green Coffees'), 
-    st.Page('page_apps/individual_coffee_page.py', title='Individual Coffee Information'), 
-    st.Page('page_apps/fresh_dashboard_page.py', title='Fresh Arrival Dashboard')
+    st.Page('page_apps/landing.py', title='Dashboard', default=True, icon='📊'),
+    st.Page('page_apps/full_data_set_page.py', title='All Green Coffees', icon='☕'), 
+    st.Page('page_apps/individual_coffee_page.py', title='Individual Coffee Information', icon='🔍'), 
+    st.Page('page_apps/about_page.py', title='About the Home Greens Project', icon='ℹ️')
 ]
 
 pg = st.navigation(page_collection, position='sidebar')

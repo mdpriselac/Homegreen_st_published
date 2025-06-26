@@ -16,38 +16,32 @@ class FrontendSupabaseClient:
         self.supabase_anon_key = st.secrets["supabase"]["anon_key"]
         self.client = create_client(self.supabase_url, self.supabase_anon_key)
     
-    @st.cache_data(ttl=3600)  # Cache for 5 minutes
+    @st.cache_data(ttl=3600)  # Cache for 1 hour
     def get_all_coffees(_self) -> pd.DataFrame:
-        """Get all active coffees with their attributes"""
+        """Get all active coffees with their attributes using optimized single query"""
         
         try:
-            # Get coffees data first, ordered by most recently first seen
-            coffees_result = _self.client.table('coffees').select('*').eq('is_active', True).order('first_observed', desc=True).limit(50).execute()
+            # Single optimized query with joins - get all active coffees with related data
+            result = _self.client.table('coffees').select(
+                'id, url, name, first_observed, last_observed, is_active, sellers(name, homepage), coffee_attributes(country_final, subregion_final, micro_final, process_type_final, fermentation, categorized_flavors, altitude_low, altitude_high, observation_date, flavor_notes, varietal)'
+            ).eq('is_active', True).order('first_observed', desc=True).limit(3000).execute()
             
             flattened_data = []
             
-            for coffee in coffees_result.data:
-                coffee_id = coffee['id']
-                seller_id = coffee.get('seller_id')
+            for coffee in result.data:
+                # Extract seller info (handle both dict and list formats)
+                seller_info = coffee.get('sellers', {})
+                if isinstance(seller_info, list) and len(seller_info) > 0:
+                    seller_info = seller_info[0]
+                elif not isinstance(seller_info, dict):
+                    seller_info = {}
                 
-                # Get seller info
-                seller_info = {}
-                if seller_id:
-                    try:
-                        seller_result = _self.client.table('sellers').select('name, homepage').eq('id', seller_id).execute()
-                        if seller_result.data:
-                            seller_info = seller_result.data[0]
-                    except:
-                        pass
-                
-                # Get coffee attributes
-                coffee_attrs = {}
-                try:
-                    attrs_result = _self.client.table('coffee_attributes').select('*').eq('coffee_id', coffee_id).execute()
-                    if attrs_result.data:
-                        coffee_attrs = attrs_result.data[0]
-                except Exception:
-                    pass
+                # Extract coffee attributes (handle both dict and list formats)
+                coffee_attrs = coffee.get('coffee_attributes', {})
+                if isinstance(coffee_attrs, list) and len(coffee_attrs) > 0:
+                    coffee_attrs = coffee_attrs[0]
+                elif not isinstance(coffee_attrs, dict):
+                    coffee_attrs = {}
                 
                 flattened_row = {
                     'id': coffee.get('id', ''),
