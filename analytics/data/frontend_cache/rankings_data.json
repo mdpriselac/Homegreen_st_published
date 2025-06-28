@@ -1,0 +1,2636 @@
+{
+  "most_distinctive": [
+    {
+      "unit": "Thailand",
+      "type": "country",
+      "score": 10.0,
+      "coffee_count": 1
+    },
+    {
+      "unit": "Nepal",
+      "type": "country",
+      "score": 9.0,
+      "coffee_count": 1
+    },
+    {
+      "unit": "United States: Hawaii",
+      "type": "country",
+      "score": 8.5,
+      "coffee_count": 14
+    },
+    {
+      "unit": "China",
+      "type": "country",
+      "score": 8.0,
+      "coffee_count": 8
+    },
+    {
+      "unit": "Timor-Leste",
+      "type": "country",
+      "score": 8.0,
+      "coffee_count": 11
+    },
+    {
+      "unit": "Jamaica",
+      "type": "country",
+      "score": 7.0,
+      "coffee_count": 6
+    },
+    {
+      "unit": "Dominican Republic",
+      "type": "country",
+      "score": 7.0,
+      "coffee_count": 14
+    },
+    {
+      "unit": "Ecuador",
+      "type": "country",
+      "score": 5.0,
+      "coffee_count": 6
+    },
+    {
+      "unit": "Vietnam",
+      "type": "country",
+      "score": 5.0,
+      "coffee_count": 7
+    },
+    {
+      "unit": "Haiti",
+      "type": "country",
+      "score": 5.0,
+      "coffee_count": 16
+    }
+  ],
+  "most_specialized": [
+    {
+      "entity_name": "Costa Rica",
+      "unit_type": "country",
+      "score": 0.7745901639344261,
+      "total_coffees": 94
+    },
+    {
+      "entity_name": "China",
+      "unit_type": "country",
+      "score": 0.717948717948718,
+      "total_coffees": 8
+    },
+    {
+      "entity_name": "Indonesia",
+      "unit_type": "country",
+      "score": 0.587962962962963,
+      "total_coffees": 118
+    },
+    {
+      "entity_name": "Ecuador",
+      "unit_type": "country",
+      "score": 0.7241379310344828,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "El Salvador",
+      "unit_type": "country",
+      "score": 0.8438818565400844,
+      "total_coffees": 48
+    },
+    {
+      "entity_name": "Colombia",
+      "unit_type": "country",
+      "score": 0.7445544554455445,
+      "total_coffees": 190
+    },
+    {
+      "entity_name": "Ethiopia",
+      "unit_type": "country",
+      "score": 0.7471783295711061,
+      "total_coffees": 213
+    },
+    {
+      "entity_name": "Vietnam",
+      "unit_type": "country",
+      "score": 0.7333333333333333,
+      "total_coffees": 7
+    },
+    {
+      "entity_name": "Uganda",
+      "unit_type": "country",
+      "score": 0.7126436781609196,
+      "total_coffees": 17
+    },
+    {
+      "entity_name": "Brazil",
+      "unit_type": "country",
+      "score": 0.8352490421455939,
+      "total_coffees": 107
+    },
+    {
+      "entity_name": "Guatemala",
+      "unit_type": "country",
+      "score": 0.7839673913043478,
+      "total_coffees": 139
+    },
+    {
+      "entity_name": "Kenya",
+      "unit_type": "country",
+      "score": 0.7156488549618321,
+      "total_coffees": 90
+    },
+    {
+      "entity_name": "Papua New Guinea",
+      "unit_type": "country",
+      "score": 0.6883116883116883,
+      "total_coffees": 36
+    },
+    {
+      "entity_name": "Yemen",
+      "unit_type": "country",
+      "score": 0.6285714285714286,
+      "total_coffees": 12
+    },
+    {
+      "entity_name": "Peru",
+      "unit_type": "country",
+      "score": 0.7876923076923077,
+      "total_coffees": 65
+    },
+    {
+      "entity_name": "Mexico",
+      "unit_type": "country",
+      "score": 0.7774390243902439,
+      "total_coffees": 56
+    },
+    {
+      "entity_name": "Nicaragua",
+      "unit_type": "country",
+      "score": 0.6940639269406392,
+      "total_coffees": 43
+    },
+    {
+      "entity_name": "Bolivia",
+      "unit_type": "country",
+      "score": 0.75,
+      "total_coffees": 42
+    },
+    {
+      "entity_name": "Honduras",
+      "unit_type": "country",
+      "score": 0.8138424821002387,
+      "total_coffees": 89
+    },
+    {
+      "entity_name": "Burundi",
+      "unit_type": "country",
+      "score": 0.7147766323024054,
+      "total_coffees": 54
+    },
+    {
+      "entity_name": "Zambia",
+      "unit_type": "country",
+      "score": 0.641025641025641,
+      "total_coffees": 8
+    },
+    {
+      "entity_name": "Nepal",
+      "unit_type": "country",
+      "score": 0.875,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "India",
+      "unit_type": "country",
+      "score": 0.5797101449275363,
+      "total_coffees": 27
+    },
+    {
+      "entity_name": "United States: Hawaii",
+      "unit_type": "country",
+      "score": 0.7333333333333333,
+      "total_coffees": 14
+    },
+    {
+      "entity_name": "Timor-Leste",
+      "unit_type": "country",
+      "score": 0.6428571428571428,
+      "total_coffees": 11
+    },
+    {
+      "entity_name": "Congo",
+      "unit_type": "country",
+      "score": 0.7234042553191489,
+      "total_coffees": 9
+    },
+    {
+      "entity_name": "Tanzania",
+      "unit_type": "country",
+      "score": 0.7333333333333334,
+      "total_coffees": 31
+    },
+    {
+      "entity_name": "Jamaica",
+      "unit_type": "country",
+      "score": 0.7931034482758621,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Dominican Republic",
+      "unit_type": "country",
+      "score": 0.7042253521126761,
+      "total_coffees": 14
+    },
+    {
+      "entity_name": "Haiti",
+      "unit_type": "country",
+      "score": 0.6666666666666665,
+      "total_coffees": 16
+    },
+    {
+      "entity_name": "Rwanda",
+      "unit_type": "country",
+      "score": 0.6913183279742765,
+      "total_coffees": 52
+    },
+    {
+      "entity_name": "Panama",
+      "unit_type": "country",
+      "score": 0.6772727272727272,
+      "total_coffees": 36
+    },
+    {
+      "entity_name": "Thailand",
+      "unit_type": "country",
+      "score": 0.75,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Malawi",
+      "unit_type": "country",
+      "score": 0.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Costa Rica_Tarrazu",
+      "unit_type": "region",
+      "score": 0.7348484848484849,
+      "total_coffees": 51
+    },
+    {
+      "entity_name": "China_Yunnan",
+      "unit_type": "region",
+      "score": 0.717948717948718,
+      "total_coffees": 8
+    },
+    {
+      "entity_name": "Indonesia_Java",
+      "unit_type": "region",
+      "score": 0.6099290780141844,
+      "total_coffees": 28
+    },
+    {
+      "entity_name": "Ecuador_Loja",
+      "unit_type": "region",
+      "score": 0.8181818181818181,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Indonesia_Sulawesi",
+      "unit_type": "region",
+      "score": 0.6597938144329897,
+      "total_coffees": 15
+    },
+    {
+      "entity_name": "Indonesia_Sumatra",
+      "unit_type": "region",
+      "score": 0.5490196078431373,
+      "total_coffees": 57
+    },
+    {
+      "entity_name": "El Salvador_Apaneca-Ilamatepec",
+      "unit_type": "region",
+      "score": 0.83,
+      "total_coffees": 40
+    },
+    {
+      "entity_name": "Colombia_Antioquia",
+      "unit_type": "region",
+      "score": 0.6893203883495145,
+      "total_coffees": 18
+    },
+    {
+      "entity_name": "Ethiopia_Yirgacheffe",
+      "unit_type": "region",
+      "score": 0.7325842696629215,
+      "total_coffees": 72
+    },
+    {
+      "entity_name": "Vietnam_Central Highlands",
+      "unit_type": "region",
+      "score": 0.7391304347826086,
+      "total_coffees": 5
+    },
+    {
+      "entity_name": "Uganda_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.75,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Brazil_Minas Gerais",
+      "unit_type": "region",
+      "score": 0.7777777777777779,
+      "total_coffees": 39
+    },
+    {
+      "entity_name": "Guatemala_San Marcos",
+      "unit_type": "region",
+      "score": 0.8125000000000001,
+      "total_coffees": 10
+    },
+    {
+      "entity_name": "Kenya_Murang'a",
+      "unit_type": "region",
+      "score": 0.7741935483870968,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Papua New Guinea_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.5846153846153846,
+      "total_coffees": 10
+    },
+    {
+      "entity_name": "Colombia_Huila",
+      "unit_type": "region",
+      "score": 0.7349823321554769,
+      "total_coffees": 53
+    },
+    {
+      "entity_name": "Kenya_Nyeri",
+      "unit_type": "region",
+      "score": 0.7862903225806451,
+      "total_coffees": 44
+    },
+    {
+      "entity_name": "Ethiopia_Sidama",
+      "unit_type": "region",
+      "score": 0.742014742014742,
+      "total_coffees": 62
+    },
+    {
+      "entity_name": "Colombia_Cauca",
+      "unit_type": "region",
+      "score": 0.7844311377245509,
+      "total_coffees": 25
+    },
+    {
+      "entity_name": "Yemen_Sana'a",
+      "unit_type": "region",
+      "score": 0.8125,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Guatemala_Antigua",
+      "unit_type": "region",
+      "score": 0.751412429378531,
+      "total_coffees": 37
+    },
+    {
+      "entity_name": "Guatemala_Coban",
+      "unit_type": "region",
+      "score": 0.8666666666666667,
+      "total_coffees": 4
+    },
+    {
+      "entity_name": "Peru_Cajamarca",
+      "unit_type": "region",
+      "score": 0.8130434782608695,
+      "total_coffees": 44
+    },
+    {
+      "entity_name": "Costa Rica_Central Valley",
+      "unit_type": "region",
+      "score": 0.8725490196078431,
+      "total_coffees": 19
+    },
+    {
+      "entity_name": "Mexico_Chiapas",
+      "unit_type": "region",
+      "score": 0.8542713567839196,
+      "total_coffees": 33
+    },
+    {
+      "entity_name": "Nicaragua_Matagalpa",
+      "unit_type": "region",
+      "score": 0.5777777777777777,
+      "total_coffees": 10
+    },
+    {
+      "entity_name": "Bolivia_Yungas",
+      "unit_type": "region",
+      "score": 0.7425742574257426,
+      "total_coffees": 39
+    },
+    {
+      "entity_name": "Honduras_Montecillos",
+      "unit_type": "region",
+      "score": 0.776595744680851,
+      "total_coffees": 15
+    },
+    {
+      "entity_name": "Burundi_Kayanza",
+      "unit_type": "region",
+      "score": 0.7251461988304093,
+      "total_coffees": 28
+    },
+    {
+      "entity_name": "Guatemala_Huehuetenango",
+      "unit_type": "region",
+      "score": 0.8247126436781609,
+      "total_coffees": 59
+    },
+    {
+      "entity_name": "Colombia_Quindio",
+      "unit_type": "region",
+      "score": 0.7387387387387387,
+      "total_coffees": 26
+    },
+    {
+      "entity_name": "Zambia_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.641025641025641,
+      "total_coffees": 8
+    },
+    {
+      "entity_name": "Vietnam_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Indonesia_Bali",
+      "unit_type": "region",
+      "score": 0.7111111111111111,
+      "total_coffees": 8
+    },
+    {
+      "entity_name": "Nepal_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.875,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Ethiopia_Jima",
+      "unit_type": "region",
+      "score": 0.7674418604651163,
+      "total_coffees": 14
+    },
+    {
+      "entity_name": "Burundi_Ngozi",
+      "unit_type": "region",
+      "score": 0.78,
+      "total_coffees": 10
+    },
+    {
+      "entity_name": "Ethiopia_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.8214285714285714,
+      "total_coffees": 42
+    },
+    {
+      "entity_name": "Burundi_Muramvya",
+      "unit_type": "region",
+      "score": 0.6666666666666666,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Honduras_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.8814814814814814,
+      "total_coffees": 31
+    },
+    {
+      "entity_name": "India_Karnataka, Bababudangiri",
+      "unit_type": "region",
+      "score": 0.7777777777777778,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "India_Bababudangiri",
+      "unit_type": "region",
+      "score": 0.75,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Brazil_Sul De Minas",
+      "unit_type": "region",
+      "score": 0.875968992248062,
+      "total_coffees": 26
+    },
+    {
+      "entity_name": "Guatemala_Nuevo Oriente",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Brazil_Cerrado",
+      "unit_type": "region",
+      "score": 0.875,
+      "total_coffees": 21
+    },
+    {
+      "entity_name": "Nicaragua_Jinotega",
+      "unit_type": "region",
+      "score": 0.7222222222222222,
+      "total_coffees": 13
+    },
+    {
+      "entity_name": "Colombia_Narino",
+      "unit_type": "region",
+      "score": 0.8125,
+      "total_coffees": 25
+    },
+    {
+      "entity_name": "Honduras_Copan",
+      "unit_type": "region",
+      "score": 0.8,
+      "total_coffees": 16
+    },
+    {
+      "entity_name": "Honduras_Opalaca",
+      "unit_type": "region",
+      "score": 0.7608695652173912,
+      "total_coffees": 10
+    },
+    {
+      "entity_name": "Guatemala_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.7450980392156863,
+      "total_coffees": 11
+    },
+    {
+      "entity_name": "Kenya_Embu",
+      "unit_type": "region",
+      "score": 0.7000000000000001,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "El Salvador_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.9166666666666667,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Colombia_Caldas",
+      "unit_type": "region",
+      "score": 0.7777777777777777,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Uganda_Western Uganda",
+      "unit_type": "region",
+      "score": 0.7,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "United States: Hawaii_Kona",
+      "unit_type": "region",
+      "score": 0.7333333333333333,
+      "total_coffees": 14
+    },
+    {
+      "entity_name": "Timor-Leste_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.6428571428571428,
+      "total_coffees": 11
+    },
+    {
+      "entity_name": "El Salvador_El Balsam Quezaltepec",
+      "unit_type": "region",
+      "score": 0.8888888888888888,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Kenya_\"Trans-Nzoia,  Keiyo & Marakwet\"",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Congo_Kivu",
+      "unit_type": "region",
+      "score": 0.7234042553191489,
+      "total_coffees": 9
+    },
+    {
+      "entity_name": "Tanzania_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.6666666666666666,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Brazil_Sao Paolo",
+      "unit_type": "region",
+      "score": 0.75,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Jamaica_Blue Mountain",
+      "unit_type": "region",
+      "score": 0.7931034482758621,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Kenya_Kirinyaga",
+      "unit_type": "region",
+      "score": 0.6814159292035398,
+      "total_coffees": 16
+    },
+    {
+      "entity_name": "Mexico_Oaxaca",
+      "unit_type": "region",
+      "score": 0.846153846153846,
+      "total_coffees": 9
+    },
+    {
+      "entity_name": "India_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.8,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Dominican Republic_Cordillera Central",
+      "unit_type": "region",
+      "score": 0.6956521739130435,
+      "total_coffees": 13
+    },
+    {
+      "entity_name": "Haiti_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.6666666666666665,
+      "total_coffees": 16
+    },
+    {
+      "entity_name": "Rwanda_Southern and Western",
+      "unit_type": "region",
+      "score": 0.6789667896678966,
+      "total_coffees": 45
+    },
+    {
+      "entity_name": "Rwanda_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.8250000000000001,
+      "total_coffees": 7
+    },
+    {
+      "entity_name": "Guatemala_Fraijanes",
+      "unit_type": "region",
+      "score": 0.6744186046511628,
+      "total_coffees": 7
+    },
+    {
+      "entity_name": "Ethiopia_Harrar",
+      "unit_type": "region",
+      "score": 0.8500000000000001,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Tanzania_Arusha",
+      "unit_type": "region",
+      "score": 0.6842105263157894,
+      "total_coffees": 8
+    },
+    {
+      "entity_name": "India_Karnataka, Chikmagalur",
+      "unit_type": "region",
+      "score": 0.6,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Uganda_Bugisu",
+      "unit_type": "region",
+      "score": 0.7407407407407407,
+      "total_coffees": 11
+    },
+    {
+      "entity_name": "Tanzania_Mbeya",
+      "unit_type": "region",
+      "score": 0.7397260273972603,
+      "total_coffees": 14
+    },
+    {
+      "entity_name": "Uganda_West Nile",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Mexico_Veracruz",
+      "unit_type": "region",
+      "score": 0.7096774193548386,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Mexico_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.7058823529411764,
+      "total_coffees": 7
+    },
+    {
+      "entity_name": "Costa Rica_West Valley",
+      "unit_type": "region",
+      "score": 0.7384615384615385,
+      "total_coffees": 11
+    },
+    {
+      "entity_name": "India_Karnataka",
+      "unit_type": "region",
+      "score": 0.6428571428571429,
+      "total_coffees": 8
+    },
+    {
+      "entity_name": "Papua New Guinea_Eastern Highlands",
+      "unit_type": "region",
+      "score": 0.6774193548387096,
+      "total_coffees": 8
+    },
+    {
+      "entity_name": "Panama_Boquete",
+      "unit_type": "region",
+      "score": 0.6804733727810651,
+      "total_coffees": 27
+    },
+    {
+      "entity_name": "Ethiopia_Sidama, UNKNOWN",
+      "unit_type": "region",
+      "score": 0.875,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Kenya_Kiambu",
+      "unit_type": "region",
+      "score": 0.7727272727272727,
+      "total_coffees": 12
+    },
+    {
+      "entity_name": "Costa Rica_Brunca",
+      "unit_type": "region",
+      "score": 0.8571428571428572,
+      "total_coffees": 7
+    },
+    {
+      "entity_name": "Honduras_Comayagua",
+      "unit_type": "region",
+      "score": 0.8,
+      "total_coffees": 13
+    },
+    {
+      "entity_name": "Kenya_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.75,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Thailand_Northern",
+      "unit_type": "region",
+      "score": 0.75,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Papua New Guinea_Western Highlands",
+      "unit_type": "region",
+      "score": 0.7555555555555555,
+      "total_coffees": 10
+    },
+    {
+      "entity_name": "Colombia_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.6333333333333333,
+      "total_coffees": 7
+    },
+    {
+      "entity_name": "Peru_Junin",
+      "unit_type": "region",
+      "score": 0.7450980392156863,
+      "total_coffees": 11
+    },
+    {
+      "entity_name": "India_Kerala",
+      "unit_type": "region",
+      "score": 0.625,
+      "total_coffees": 5
+    },
+    {
+      "entity_name": "Mexico_Chiapas, Oaxaca",
+      "unit_type": "region",
+      "score": 0.75,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Colombia_Tolima",
+      "unit_type": "region",
+      "score": 0.7884615384615384,
+      "total_coffees": 16
+    },
+    {
+      "entity_name": "Dominican Republic_Barahona",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Honduras_Copan, Montecillos",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Colombia_Risaralda",
+      "unit_type": "region",
+      "score": 0.8285714285714285,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Colombia_Sierra Nevada",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Tanzania_Kilimnajaro",
+      "unit_type": "region",
+      "score": 0.8095238095238094,
+      "total_coffees": 4
+    },
+    {
+      "entity_name": "El Salvador_Tepeca-Chinameca",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Tanzania_Ruvuma, Mbeya",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Papua New Guinea_Eastern highlands",
+      "unit_type": "region",
+      "score": 0.6470588235294118,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Guatemala_Acatenango",
+      "unit_type": "region",
+      "score": 0.717948717948718,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "India_Chikmagalur",
+      "unit_type": "region",
+      "score": 0.6875,
+      "total_coffees": 4
+    },
+    {
+      "entity_name": "Brazil_Matas De Minas",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Colombia_Santander",
+      "unit_type": "region",
+      "score": 0.75,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Indonesia_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Panama_Volcan Candela",
+      "unit_type": "region",
+      "score": 0.763157894736842,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Costa Rica_Tres Rios",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Ethiopia_Limu",
+      "unit_type": "region",
+      "score": 0.8117647058823529,
+      "total_coffees": 15
+    },
+    {
+      "entity_name": "Costa Rica_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.6923076923076924,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Nicaragua_Nueva Segovia",
+      "unit_type": "region",
+      "score": 0.7419354838709677,
+      "total_coffees": 18
+    },
+    {
+      "entity_name": "Uganda_Central Lowlands",
+      "unit_type": "region",
+      "score": 0.7142857142857142,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Burundi_Muting",
+      "unit_type": "region",
+      "score": 0.8181818181818181,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Brazil_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.8,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Colombia_Cauca, Valle Del Cauca, Huila",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Papua New Guinea_Simbu Province",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Peru_Cusco",
+      "unit_type": "region",
+      "score": 0.9999999999999999,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Guatemala_Antigua, Atitlan, Huehuetenango",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Burundi_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.6923076923076923,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Burundi_Kirundo",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Colombia_Antioquia, Quindio",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Brazil_Cerrado, Sul De Minas, Sao Paolo",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "El Salvador_Alotepec-Metapan",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Kenya_Meru",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Bolivia_Beni",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Brazil_Sul De Minas, Minas Gerais",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Indonesia_Flores",
+      "unit_type": "region",
+      "score": 0.6140350877192982,
+      "total_coffees": 9
+    },
+    {
+      "entity_name": "Colombia_Antioquia, Huila",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Peru_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.6666666666666666,
+      "total_coffees": 4
+    },
+    {
+      "entity_name": "Ecuador_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.5714285714285714,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Burundi_Bururi",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Burundi_Ngozi, Kayanza",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Panama_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Panama_Renacimiento",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Burundi_Gitega",
+      "unit_type": "region",
+      "score": 0.7222222222222222,
+      "total_coffees": 4
+    },
+    {
+      "entity_name": "Brazil_Espirito Santo",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Brazil_Minas Gerais, Cerrado",
+      "unit_type": "region",
+      "score": 0.9333333333333333,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Yemen_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.6578947368421053,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Costa Rica_Central Valley, West Valley, Tarrazu, Tres Rios, Orosi, Brunca, Turrialba, Guanacaste",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Brazil_Minas Gerais, Sul De Minas, Chapada De Minas, Matas De Minas",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Peru_San Martin",
+      "unit_type": "region",
+      "score": 0.7272727272727273,
+      "total_coffees": 4
+    },
+    {
+      "entity_name": "Nicaragua_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.8888888888888888,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Brazil_Minas Gerais, Cerrado, Sul De Minas",
+      "unit_type": "region",
+      "score": 0.9999999999999999,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Tanzania_Ruvuma",
+      "unit_type": "region",
+      "score": 0.8421052631578947,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "El Salvador_Cacahuatique",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Bolivia_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Guatemala_Acatenango, Atitlan",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Honduras_El Paraiso",
+      "unit_type": "region",
+      "score": 0.8333333333333333,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Brazil_Sul de Minas",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "India_Tamil Nadu, Nigiri",
+      "unit_type": "region",
+      "score": 0.8666666666666667,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Brazil_Cerrado, Minas Gerais",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Colombia_Antioquia, Cauca",
+      "unit_type": "region",
+      "score": 0.7142857142857142,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Costa Rica_Tarrazu, Brunca",
+      "unit_type": "region",
+      "score": 0.75,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Kenya_Kiambu, Murang'a",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Ethiopia_Ghimbi/Lekempti",
+      "unit_type": "region",
+      "score": 0.8333333333333333,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Colombia_Valle Del Cauca",
+      "unit_type": "region",
+      "score": 0.8571428571428572,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Honduras_Copan, Montecillos, Agalta, Opalaca, Comayagua, El Paraiso",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Malawi_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Guatemala_San Marcos, Fraijanes",
+      "unit_type": "region",
+      "score": 1.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Vietnam_North Vietnam",
+      "unit_type": "region",
+      "score": 0.8,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Bodhi",
+      "unit_type": "seller",
+      "score": 0.8370535714285714,
+      "total_coffees": 134
+    },
+    {
+      "entity_name": "Coffee Project",
+      "unit_type": "seller",
+      "score": 0.751937984496124,
+      "total_coffees": 27
+    },
+    {
+      "entity_name": "Sweet Marias",
+      "unit_type": "seller",
+      "score": 0.7125773195876288,
+      "total_coffees": 433
+    },
+    {
+      "entity_name": "Burman",
+      "unit_type": "seller",
+      "score": 0.5759803921568628,
+      "total_coffees": 235
+    },
+    {
+      "entity_name": "Captain's Coffee",
+      "unit_type": "seller",
+      "score": 0.7798742138364779,
+      "total_coffees": 65
+    },
+    {
+      "entity_name": "Theta Ridge Coffee",
+      "unit_type": "seller",
+      "score": 0.7123287671232876,
+      "total_coffees": 77
+    },
+    {
+      "entity_name": "Coffee Bean Corral",
+      "unit_type": "seller",
+      "score": 0.7567567567567568,
+      "total_coffees": 130
+    },
+    {
+      "entity_name": "Lost Dutchman",
+      "unit_type": "seller",
+      "score": 0.5892857142857143,
+      "total_coffees": 15
+    },
+    {
+      "entity_name": "Royal Coffee",
+      "unit_type": "seller",
+      "score": 0.7526881720430108,
+      "total_coffees": 45
+    },
+    {
+      "entity_name": "Invalsa",
+      "unit_type": "seller",
+      "score": 0.7401574803149606,
+      "total_coffees": 31
+    },
+    {
+      "entity_name": "Hacea",
+      "unit_type": "seller",
+      "score": 0.7928082191780821,
+      "total_coffees": 83
+    },
+    {
+      "entity_name": "Mill City Roasters",
+      "unit_type": "seller",
+      "score": 0.8433931484502447,
+      "total_coffees": 48
+    },
+    {
+      "entity_name": "Prime Green Coffee",
+      "unit_type": "seller",
+      "score": 0.7942238267148014,
+      "total_coffees": 61
+    },
+    {
+      "entity_name": "Roastmasters",
+      "unit_type": "seller",
+      "score": 0.7441860465116279,
+      "total_coffees": 91
+    },
+    {
+      "entity_name": "Showroom",
+      "unit_type": "seller",
+      "score": 0.7992700729927007,
+      "total_coffees": 60
+    },
+    {
+      "entity_name": "Smokin Beans",
+      "unit_type": "seller",
+      "score": 0.815489749430524,
+      "total_coffees": 72
+    },
+    {
+      "entity_name": "Cafe Kreyol",
+      "unit_type": "seller",
+      "score": 0.7788461538461539,
+      "total_coffees": 30
+    },
+    {
+      "entity_name": "Copan",
+      "unit_type": "seller",
+      "score": 0.8935185185185185,
+      "total_coffees": 70
+    },
+    {
+      "entity_name": "Ryal Coffee",
+      "unit_type": "seller",
+      "score": 1.0,
+      "total_coffees": 1
+    }
+  ],
+  "most_diverse": [
+    {
+      "entity_name": "Costa Rica",
+      "unit_type": "country",
+      "score": 1.6976114602059165,
+      "total_coffees": 94
+    },
+    {
+      "entity_name": "China",
+      "unit_type": "country",
+      "score": 1.68583256864869,
+      "total_coffees": 8
+    },
+    {
+      "entity_name": "Indonesia",
+      "unit_type": "country",
+      "score": 1.9780044398247374,
+      "total_coffees": 118
+    },
+    {
+      "entity_name": "Ecuador",
+      "unit_type": "country",
+      "score": 1.6227402042548906,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "El Salvador",
+      "unit_type": "country",
+      "score": 1.5814200478969698,
+      "total_coffees": 48
+    },
+    {
+      "entity_name": "Colombia",
+      "unit_type": "country",
+      "score": 1.699003584255553,
+      "total_coffees": 190
+    },
+    {
+      "entity_name": "Ethiopia",
+      "unit_type": "country",
+      "score": 1.5702876210355037,
+      "total_coffees": 213
+    },
+    {
+      "entity_name": "Vietnam",
+      "unit_type": "country",
+      "score": 1.6454513940412652,
+      "total_coffees": 7
+    },
+    {
+      "entity_name": "Uganda",
+      "unit_type": "country",
+      "score": 1.7052263398001926,
+      "total_coffees": 17
+    },
+    {
+      "entity_name": "Brazil",
+      "unit_type": "country",
+      "score": 1.591195453007877,
+      "total_coffees": 107
+    },
+    {
+      "entity_name": "Guatemala",
+      "unit_type": "country",
+      "score": 1.7218792030281957,
+      "total_coffees": 139
+    },
+    {
+      "entity_name": "Kenya",
+      "unit_type": "country",
+      "score": 1.6806318116478387,
+      "total_coffees": 90
+    },
+    {
+      "entity_name": "Papua New Guinea",
+      "unit_type": "country",
+      "score": 1.8894772646539608,
+      "total_coffees": 36
+    },
+    {
+      "entity_name": "Yemen",
+      "unit_type": "country",
+      "score": 1.8141828649182006,
+      "total_coffees": 12
+    },
+    {
+      "entity_name": "Peru",
+      "unit_type": "country",
+      "score": 1.6791588899308636,
+      "total_coffees": 65
+    },
+    {
+      "entity_name": "Mexico",
+      "unit_type": "country",
+      "score": 1.7265474152647726,
+      "total_coffees": 56
+    },
+    {
+      "entity_name": "Nicaragua",
+      "unit_type": "country",
+      "score": 1.833200177115034,
+      "total_coffees": 43
+    },
+    {
+      "entity_name": "Bolivia",
+      "unit_type": "country",
+      "score": 1.719729475651861,
+      "total_coffees": 42
+    },
+    {
+      "entity_name": "Honduras",
+      "unit_type": "country",
+      "score": 1.6586765271037764,
+      "total_coffees": 89
+    },
+    {
+      "entity_name": "Burundi",
+      "unit_type": "country",
+      "score": 1.7288265013760662,
+      "total_coffees": 54
+    },
+    {
+      "entity_name": "Zambia",
+      "unit_type": "country",
+      "score": 1.9727192454368487,
+      "total_coffees": 8
+    },
+    {
+      "entity_name": "Nepal",
+      "unit_type": "country",
+      "score": 1.2130075659799042,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "India",
+      "unit_type": "country",
+      "score": 1.992875546971272,
+      "total_coffees": 27
+    },
+    {
+      "entity_name": "United States: Hawaii",
+      "unit_type": "country",
+      "score": 1.6585475808698198,
+      "total_coffees": 14
+    },
+    {
+      "entity_name": "Timor-Leste",
+      "unit_type": "country",
+      "score": 1.8439537250981857,
+      "total_coffees": 11
+    },
+    {
+      "entity_name": "Congo",
+      "unit_type": "country",
+      "score": 1.6763211620899243,
+      "total_coffees": 9
+    },
+    {
+      "entity_name": "Tanzania",
+      "unit_type": "country",
+      "score": 1.6918347623412429,
+      "total_coffees": 31
+    },
+    {
+      "entity_name": "Jamaica",
+      "unit_type": "country",
+      "score": 1.5795978447465704,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Dominican Republic",
+      "unit_type": "country",
+      "score": 1.7674674223473912,
+      "total_coffees": 14
+    },
+    {
+      "entity_name": "Haiti",
+      "unit_type": "country",
+      "score": 1.8351844989574089,
+      "total_coffees": 16
+    },
+    {
+      "entity_name": "Rwanda",
+      "unit_type": "country",
+      "score": 1.762359072177839,
+      "total_coffees": 52
+    },
+    {
+      "entity_name": "Panama",
+      "unit_type": "country",
+      "score": 1.8131073568393599,
+      "total_coffees": 36
+    },
+    {
+      "entity_name": "Thailand",
+      "unit_type": "country",
+      "score": 1.4941751382893085,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Malawi",
+      "unit_type": "country",
+      "score": 0.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Costa Rica_Tarrazu",
+      "unit_type": "region",
+      "score": 1.7869311807511548,
+      "total_coffees": 51
+    },
+    {
+      "entity_name": "China_Yunnan",
+      "unit_type": "region",
+      "score": 1.68583256864869,
+      "total_coffees": 8
+    },
+    {
+      "entity_name": "Indonesia_Java",
+      "unit_type": "region",
+      "score": 1.9569721888388836,
+      "total_coffees": 28
+    },
+    {
+      "entity_name": "Ecuador_Loja",
+      "unit_type": "region",
+      "score": 1.5288207552621662,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Indonesia_Sulawesi",
+      "unit_type": "region",
+      "score": 1.909582981198053,
+      "total_coffees": 15
+    },
+    {
+      "entity_name": "Indonesia_Sumatra",
+      "unit_type": "region",
+      "score": 1.9746551515165447,
+      "total_coffees": 57
+    },
+    {
+      "entity_name": "El Salvador_Apaneca-Ilamatepec",
+      "unit_type": "region",
+      "score": 1.6188475974724008,
+      "total_coffees": 40
+    },
+    {
+      "entity_name": "Colombia_Antioquia",
+      "unit_type": "region",
+      "score": 1.793485498312706,
+      "total_coffees": 18
+    },
+    {
+      "entity_name": "Ethiopia_Yirgacheffe",
+      "unit_type": "region",
+      "score": 1.6638098775447059,
+      "total_coffees": 72
+    },
+    {
+      "entity_name": "Vietnam_Central Highlands",
+      "unit_type": "region",
+      "score": 1.6626840745775033,
+      "total_coffees": 5
+    },
+    {
+      "entity_name": "Uganda_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.2996509635498974,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Brazil_Minas Gerais",
+      "unit_type": "region",
+      "score": 1.6743672353603478,
+      "total_coffees": 39
+    },
+    {
+      "entity_name": "Guatemala_San Marcos",
+      "unit_type": "region",
+      "score": 1.4429582605128224,
+      "total_coffees": 10
+    },
+    {
+      "entity_name": "Kenya_Murang'a",
+      "unit_type": "region",
+      "score": 1.5504417795859196,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Papua New Guinea_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.9510022127596078,
+      "total_coffees": 10
+    },
+    {
+      "entity_name": "Colombia_Huila",
+      "unit_type": "region",
+      "score": 1.6827749099045148,
+      "total_coffees": 53
+    },
+    {
+      "entity_name": "Kenya_Nyeri",
+      "unit_type": "region",
+      "score": 1.5739251073647733,
+      "total_coffees": 44
+    },
+    {
+      "entity_name": "Ethiopia_Sidama",
+      "unit_type": "region",
+      "score": 1.5614237059288278,
+      "total_coffees": 62
+    },
+    {
+      "entity_name": "Colombia_Cauca",
+      "unit_type": "region",
+      "score": 1.6584015787572575,
+      "total_coffees": 25
+    },
+    {
+      "entity_name": "Yemen_Sana'a",
+      "unit_type": "region",
+      "score": 1.4607190070293867,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Guatemala_Antigua",
+      "unit_type": "region",
+      "score": 1.7939137430501595,
+      "total_coffees": 37
+    },
+    {
+      "entity_name": "Guatemala_Coban",
+      "unit_type": "region",
+      "score": 1.4019454593787286,
+      "total_coffees": 4
+    },
+    {
+      "entity_name": "Peru_Cajamarca",
+      "unit_type": "region",
+      "score": 1.6040708716362633,
+      "total_coffees": 44
+    },
+    {
+      "entity_name": "Costa Rica_Central Valley",
+      "unit_type": "region",
+      "score": 1.3769585765234384,
+      "total_coffees": 19
+    },
+    {
+      "entity_name": "Mexico_Chiapas",
+      "unit_type": "region",
+      "score": 1.5597486177803987,
+      "total_coffees": 33
+    },
+    {
+      "entity_name": "Nicaragua_Matagalpa",
+      "unit_type": "region",
+      "score": 1.9143585995865124,
+      "total_coffees": 10
+    },
+    {
+      "entity_name": "Bolivia_Yungas",
+      "unit_type": "region",
+      "score": 1.7285911975211303,
+      "total_coffees": 39
+    },
+    {
+      "entity_name": "Honduras_Montecillos",
+      "unit_type": "region",
+      "score": 1.6820109912120382,
+      "total_coffees": 15
+    },
+    {
+      "entity_name": "Burundi_Kayanza",
+      "unit_type": "region",
+      "score": 1.7037767064245377,
+      "total_coffees": 28
+    },
+    {
+      "entity_name": "Guatemala_Huehuetenango",
+      "unit_type": "region",
+      "score": 1.6286125206381683,
+      "total_coffees": 59
+    },
+    {
+      "entity_name": "Colombia_Quindio",
+      "unit_type": "region",
+      "score": 1.6270874287883068,
+      "total_coffees": 26
+    },
+    {
+      "entity_name": "Zambia_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.9727192454368487,
+      "total_coffees": 8
+    },
+    {
+      "entity_name": "Vietnam_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.6931471805599453,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Indonesia_Bali",
+      "unit_type": "region",
+      "score": 1.7538244964086434,
+      "total_coffees": 8
+    },
+    {
+      "entity_name": "Nepal_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.2130075659799042,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Ethiopia_Jima",
+      "unit_type": "region",
+      "score": 1.4593224151926458,
+      "total_coffees": 14
+    },
+    {
+      "entity_name": "Burundi_Ngozi",
+      "unit_type": "region",
+      "score": 1.5768729258925391,
+      "total_coffees": 10
+    },
+    {
+      "entity_name": "Ethiopia_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.406089517133456,
+      "total_coffees": 42
+    },
+    {
+      "entity_name": "Burundi_Muramvya",
+      "unit_type": "region",
+      "score": 1.7917594692280554,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Honduras_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.439261976808353,
+      "total_coffees": 31
+    },
+    {
+      "entity_name": "India_Karnataka, Bababudangiri",
+      "unit_type": "region",
+      "score": 1.3689223607402192,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "India_Bababudangiri",
+      "unit_type": "region",
+      "score": 1.660947433286918,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Brazil_Sul De Minas",
+      "unit_type": "region",
+      "score": 1.482507426671755,
+      "total_coffees": 26
+    },
+    {
+      "entity_name": "Guatemala_Nuevo Oriente",
+      "unit_type": "region",
+      "score": 0.9502705392332347,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Brazil_Cerrado",
+      "unit_type": "region",
+      "score": 1.4821964332719877,
+      "total_coffees": 21
+    },
+    {
+      "entity_name": "Nicaragua_Jinotega",
+      "unit_type": "region",
+      "score": 1.7737106824003495,
+      "total_coffees": 13
+    },
+    {
+      "entity_name": "Colombia_Narino",
+      "unit_type": "region",
+      "score": 1.6249864888847918,
+      "total_coffees": 25
+    },
+    {
+      "entity_name": "Honduras_Copan",
+      "unit_type": "region",
+      "score": 1.5954144975806035,
+      "total_coffees": 16
+    },
+    {
+      "entity_name": "Honduras_Opalaca",
+      "unit_type": "region",
+      "score": 1.7165982385183107,
+      "total_coffees": 10
+    },
+    {
+      "entity_name": "Guatemala_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.7213027097516154,
+      "total_coffees": 11
+    },
+    {
+      "entity_name": "Kenya_Embu",
+      "unit_type": "region",
+      "score": 1.6957425341696344,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "El Salvador_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.0751393240053735,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Colombia_Caldas",
+      "unit_type": "region",
+      "score": 1.4270610433807247,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Uganda_Western Uganda",
+      "unit_type": "region",
+      "score": 1.5571130980576458,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "United States: Hawaii_Kona",
+      "unit_type": "region",
+      "score": 1.6585475808698198,
+      "total_coffees": 14
+    },
+    {
+      "entity_name": "Timor-Leste_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.8439537250981857,
+      "total_coffees": 11
+    },
+    {
+      "entity_name": "El Salvador_El Balsam Quezaltepec",
+      "unit_type": "region",
+      "score": 1.310783678099714,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Kenya_\"Trans-Nzoia,  Keiyo & Marakwet\"",
+      "unit_type": "region",
+      "score": 1.0986122886681096,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Congo_Kivu",
+      "unit_type": "region",
+      "score": 1.6763211620899243,
+      "total_coffees": 9
+    },
+    {
+      "entity_name": "Tanzania_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.7351264569629228,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Brazil_Sao Paolo",
+      "unit_type": "region",
+      "score": 1.6618823726097627,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Jamaica_Blue Mountain",
+      "unit_type": "region",
+      "score": 1.5795978447465704,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Kenya_Kirinyaga",
+      "unit_type": "region",
+      "score": 1.7425740725993473,
+      "total_coffees": 16
+    },
+    {
+      "entity_name": "Mexico_Oaxaca",
+      "unit_type": "region",
+      "score": 1.47525571735082,
+      "total_coffees": 9
+    },
+    {
+      "entity_name": "India_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.3321790402101223,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Dominican Republic_Cordillera Central",
+      "unit_type": "region",
+      "score": 1.7767535632814626,
+      "total_coffees": 13
+    },
+    {
+      "entity_name": "Haiti_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.8351844989574089,
+      "total_coffees": 16
+    },
+    {
+      "entity_name": "Rwanda_Southern and Western",
+      "unit_type": "region",
+      "score": 1.7861726417476402,
+      "total_coffees": 45
+    },
+    {
+      "entity_name": "Rwanda_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.4666727118051885,
+      "total_coffees": 7
+    },
+    {
+      "entity_name": "Guatemala_Fraijanes",
+      "unit_type": "region",
+      "score": 1.8342881699313842,
+      "total_coffees": 7
+    },
+    {
+      "entity_name": "Ethiopia_Harrar",
+      "unit_type": "region",
+      "score": 1.4298762775052383,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Tanzania_Arusha",
+      "unit_type": "region",
+      "score": 1.776319989098198,
+      "total_coffees": 8
+    },
+    {
+      "entity_name": "India_Karnataka, Chikmagalur",
+      "unit_type": "region",
+      "score": 1.933809998920632,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Uganda_Bugisu",
+      "unit_type": "region",
+      "score": 1.6739777215284855,
+      "total_coffees": 11
+    },
+    {
+      "entity_name": "Tanzania_Mbeya",
+      "unit_type": "region",
+      "score": 1.6054411398428876,
+      "total_coffees": 14
+    },
+    {
+      "entity_name": "Uganda_West Nile",
+      "unit_type": "region",
+      "score": 0.9002560512685369,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Mexico_Veracruz",
+      "unit_type": "region",
+      "score": 1.7531463598425538,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Mexico_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.7916740800972988,
+      "total_coffees": 7
+    },
+    {
+      "entity_name": "Costa Rica_West Valley",
+      "unit_type": "region",
+      "score": 1.6674995018011112,
+      "total_coffees": 11
+    },
+    {
+      "entity_name": "India_Karnataka",
+      "unit_type": "region",
+      "score": 1.9269523912344768,
+      "total_coffees": 8
+    },
+    {
+      "entity_name": "Papua New Guinea_Eastern Highlands",
+      "unit_type": "region",
+      "score": 1.843786484414939,
+      "total_coffees": 8
+    },
+    {
+      "entity_name": "Panama_Boquete",
+      "unit_type": "region",
+      "score": 1.8172214302619691,
+      "total_coffees": 27
+    },
+    {
+      "entity_name": "Ethiopia_Sidama, UNKNOWN",
+      "unit_type": "region",
+      "score": 1.3208883431493221,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Kenya_Kiambu",
+      "unit_type": "region",
+      "score": 1.6111152670934055,
+      "total_coffees": 12
+    },
+    {
+      "entity_name": "Costa Rica_Brunca",
+      "unit_type": "region",
+      "score": 1.4699870807273894,
+      "total_coffees": 7
+    },
+    {
+      "entity_name": "Honduras_Comayagua",
+      "unit_type": "region",
+      "score": 1.6290529176724213,
+      "total_coffees": 13
+    },
+    {
+      "entity_name": "Kenya_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.7496522544628956,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Thailand_Northern",
+      "unit_type": "region",
+      "score": 1.4941751382893085,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Papua New Guinea_Western Highlands",
+      "unit_type": "region",
+      "score": 1.759747077242772,
+      "total_coffees": 10
+    },
+    {
+      "entity_name": "Colombia_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.86464041526313,
+      "total_coffees": 7
+    },
+    {
+      "entity_name": "Peru_Junin",
+      "unit_type": "region",
+      "score": 1.6977985286821082,
+      "total_coffees": 11
+    },
+    {
+      "entity_name": "India_Kerala",
+      "unit_type": "region",
+      "score": 1.9770663339464571,
+      "total_coffees": 5
+    },
+    {
+      "entity_name": "Mexico_Chiapas, Oaxaca",
+      "unit_type": "region",
+      "score": 1.4941751382893085,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Colombia_Tolima",
+      "unit_type": "region",
+      "score": 1.5599079827682651,
+      "total_coffees": 16
+    },
+    {
+      "entity_name": "Dominican Republic_Barahona",
+      "unit_type": "region",
+      "score": 0.6931471805599453,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Honduras_Copan, Montecillos",
+      "unit_type": "region",
+      "score": -0.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Colombia_Risaralda",
+      "unit_type": "region",
+      "score": 1.4263389562997684,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Colombia_Sierra Nevada",
+      "unit_type": "region",
+      "score": 1.0296530140645737,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Tanzania_Kilimnajaro",
+      "unit_type": "region",
+      "score": 1.4016171508386506,
+      "total_coffees": 4
+    },
+    {
+      "entity_name": "El Salvador_Tepeca-Chinameca",
+      "unit_type": "region",
+      "score": 1.0397207708399179,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Tanzania_Ruvuma, Mbeya",
+      "unit_type": "region",
+      "score": 1.0549201679861442,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Papua New Guinea_Eastern highlands",
+      "unit_type": "region",
+      "score": 1.845272303399323,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Guatemala_Acatenango",
+      "unit_type": "region",
+      "score": 1.6994785577273646,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "India_Chikmagalur",
+      "unit_type": "region",
+      "score": 1.6843729712135975,
+      "total_coffees": 4
+    },
+    {
+      "entity_name": "Brazil_Matas De Minas",
+      "unit_type": "region",
+      "score": 0.6365141682948128,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Colombia_Santander",
+      "unit_type": "region",
+      "score": 1.4729377586898837,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Indonesia_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.6931471805599453,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Panama_Volcan Candela",
+      "unit_type": "region",
+      "score": 1.7525529042167123,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Costa Rica_Tres Rios",
+      "unit_type": "region",
+      "score": 0.6365141682948128,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Ethiopia_Limu",
+      "unit_type": "region",
+      "score": 1.361159015832355,
+      "total_coffees": 15
+    },
+    {
+      "entity_name": "Costa Rica_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.6715952780212544,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Nicaragua_Nueva Segovia",
+      "unit_type": "region",
+      "score": 1.7449964814289816,
+      "total_coffees": 18
+    },
+    {
+      "entity_name": "Uganda_Central Lowlands",
+      "unit_type": "region",
+      "score": 1.5498260458782016,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Burundi_Muting",
+      "unit_type": "region",
+      "score": 1.2882523050229002,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Brazil_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.2148604122533093,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Colombia_Cauca, Valle Del Cauca, Huila",
+      "unit_type": "region",
+      "score": 0.5623351446188083,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Papua New Guinea_Simbu Province",
+      "unit_type": "region",
+      "score": 0.9949236325717752,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Peru_Cusco",
+      "unit_type": "region",
+      "score": 1.0789922078775833,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Guatemala_Antigua, Atitlan, Huehuetenango",
+      "unit_type": "region",
+      "score": 1.0986122886681096,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Burundi_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.8043716191528458,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Burundi_Kirundo",
+      "unit_type": "region",
+      "score": 0.6365141682948128,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Colombia_Antioquia, Quindio",
+      "unit_type": "region",
+      "score": 1.0397207708399179,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Brazil_Cerrado, Sul De Minas, Sao Paolo",
+      "unit_type": "region",
+      "score": 0.6365141682948128,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "El Salvador_Alotepec-Metapan",
+      "unit_type": "region",
+      "score": 0.5982695885852573,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Kenya_Meru",
+      "unit_type": "region",
+      "score": 1.0397207708399179,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Bolivia_Beni",
+      "unit_type": "region",
+      "score": 0.6365141682948128,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Brazil_Sul De Minas, Minas Gerais",
+      "unit_type": "region",
+      "score": 1.0986122886681096,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Indonesia_Flores",
+      "unit_type": "region",
+      "score": 1.948628788608138,
+      "total_coffees": 9
+    },
+    {
+      "entity_name": "Colombia_Antioquia, Huila",
+      "unit_type": "region",
+      "score": -0.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Peru_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.6914343362809572,
+      "total_coffees": 4
+    },
+    {
+      "entity_name": "Ecuador_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.1918937691652394,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Burundi_Bururi",
+      "unit_type": "region",
+      "score": 1.0549201679861442,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Burundi_Ngozi, Kayanza",
+      "unit_type": "region",
+      "score": 1.0549201679861442,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Panama_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.6365141682948128,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Panama_Renacimiento",
+      "unit_type": "region",
+      "score": 1.0397207708399179,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Burundi_Gitega",
+      "unit_type": "region",
+      "score": 1.6479184330021646,
+      "total_coffees": 4
+    },
+    {
+      "entity_name": "Brazil_Espirito Santo",
+      "unit_type": "region",
+      "score": -0.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Brazil_Minas Gerais, Cerrado",
+      "unit_type": "region",
+      "score": 1.1369165918330009,
+      "total_coffees": 3
+    },
+    {
+      "entity_name": "Yemen_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.7749182095234592,
+      "total_coffees": 6
+    },
+    {
+      "entity_name": "Costa Rica_Central Valley, West Valley, Tarrazu, Tres Rios, Orosi, Brunca, Turrialba, Guanacaste",
+      "unit_type": "region",
+      "score": 1.0549201679861442,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Brazil_Minas Gerais, Sul De Minas, Chapada De Minas, Matas De Minas",
+      "unit_type": "region",
+      "score": 0.6730116670092565,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Peru_San Martin",
+      "unit_type": "region",
+      "score": 1.5389874599202837,
+      "total_coffees": 4
+    },
+    {
+      "entity_name": "Nicaragua_UNKNOWN",
+      "unit_type": "region",
+      "score": 1.2148896539491205,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Brazil_Minas Gerais, Cerrado, Sul De Minas",
+      "unit_type": "region",
+      "score": 0.8675632284814612,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Tanzania_Ruvuma",
+      "unit_type": "region",
+      "score": 1.3090157953711272,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "El Salvador_Cacahuatique",
+      "unit_type": "region",
+      "score": 0.6730116670092565,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Bolivia_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.6365141682948128,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Guatemala_Acatenango, Atitlan",
+      "unit_type": "region",
+      "score": 1.0986122886681096,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Honduras_El Paraiso",
+      "unit_type": "region",
+      "score": 1.329661348854758,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Brazil_Sul de Minas",
+      "unit_type": "region",
+      "score": 0.34883209584303193,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "India_Tamil Nadu, Nigiri",
+      "unit_type": "region",
+      "score": 1.2868726303980162,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Brazil_Cerrado, Minas Gerais",
+      "unit_type": "region",
+      "score": 1.0397207708399179,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Colombia_Antioquia, Cauca",
+      "unit_type": "region",
+      "score": 1.5498260458782016,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Costa Rica_Tarrazu, Brunca",
+      "unit_type": "region",
+      "score": 1.4941751382893085,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Kenya_Kiambu, Murang'a",
+      "unit_type": "region",
+      "score": 0.410116318288409,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Ethiopia_Ghimbi/Lekempti",
+      "unit_type": "region",
+      "score": 1.329661348854758,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Colombia_Valle Del Cauca",
+      "unit_type": "region",
+      "score": 1.3316643102930148,
+      "total_coffees": 2
+    },
+    {
+      "entity_name": "Honduras_Copan, Montecillos, Agalta, Opalaca, Comayagua, El Paraiso",
+      "unit_type": "region",
+      "score": 0.6931471805599453,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Malawi_UNKNOWN",
+      "unit_type": "region",
+      "score": 0.0,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Guatemala_San Marcos, Fraijanes",
+      "unit_type": "region",
+      "score": 1.0397207708399179,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Vietnam_North Vietnam",
+      "unit_type": "region",
+      "score": 1.3321790402101223,
+      "total_coffees": 1
+    },
+    {
+      "entity_name": "Bodhi",
+      "unit_type": "seller",
+      "score": 1.5011727071368646,
+      "total_coffees": 134
+    },
+    {
+      "entity_name": "Coffee Project",
+      "unit_type": "seller",
+      "score": 1.7965979510351213,
+      "total_coffees": 27
+    },
+    {
+      "entity_name": "Sweet Marias",
+      "unit_type": "seller",
+      "score": 1.8222687952212684,
+      "total_coffees": 433
+    },
+    {
+      "entity_name": "Burman",
+      "unit_type": "seller",
+      "score": 1.978054276936971,
+      "total_coffees": 235
+    },
+    {
+      "entity_name": "Captain's Coffee",
+      "unit_type": "seller",
+      "score": 1.5748011658885503,
+      "total_coffees": 65
+    },
+    {
+      "entity_name": "Theta Ridge Coffee",
+      "unit_type": "seller",
+      "score": 1.869568956470268,
+      "total_coffees": 77
+    },
+    {
+      "entity_name": "Coffee Bean Corral",
+      "unit_type": "seller",
+      "score": 1.7510830706374907,
+      "total_coffees": 130
+    },
+    {
+      "entity_name": "Lost Dutchman",
+      "unit_type": "seller",
+      "score": 1.9296182521460268,
+      "total_coffees": 15
+    },
+    {
+      "entity_name": "Royal Coffee",
+      "unit_type": "seller",
+      "score": 1.4373319329647138,
+      "total_coffees": 45
+    },
+    {
+      "entity_name": "Invalsa",
+      "unit_type": "seller",
+      "score": 1.7299121756184637,
+      "total_coffees": 31
+    },
+    {
+      "entity_name": "Hacea",
+      "unit_type": "seller",
+      "score": 1.5058970807440508,
+      "total_coffees": 83
+    },
+    {
+      "entity_name": "Mill City Roasters",
+      "unit_type": "seller",
+      "score": 1.509151933081245,
+      "total_coffees": 48
+    },
+    {
+      "entity_name": "Prime Green Coffee",
+      "unit_type": "seller",
+      "score": 1.4949632002232107,
+      "total_coffees": 61
+    },
+    {
+      "entity_name": "Roastmasters",
+      "unit_type": "seller",
+      "score": 1.7119019398461757,
+      "total_coffees": 91
+    },
+    {
+      "entity_name": "Showroom",
+      "unit_type": "seller",
+      "score": 1.4618726183376731,
+      "total_coffees": 60
+    },
+    {
+      "entity_name": "Smokin Beans",
+      "unit_type": "seller",
+      "score": 1.6202028124531411,
+      "total_coffees": 72
+    },
+    {
+      "entity_name": "Cafe Kreyol",
+      "unit_type": "seller",
+      "score": 1.6489946267158548,
+      "total_coffees": 30
+    },
+    {
+      "entity_name": "Copan",
+      "unit_type": "seller",
+      "score": 1.417200894296289,
+      "total_coffees": 70
+    },
+    {
+      "entity_name": "Ryal Coffee",
+      "unit_type": "seller",
+      "score": 0.5623351446188083,
+      "total_coffees": 1
+    }
+  ]
+}

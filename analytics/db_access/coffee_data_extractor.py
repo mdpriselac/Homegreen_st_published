@@ -12,6 +12,9 @@ import pandas as pd
 import json
 from datetime import datetime
 
+# Opt into future pandas behavior to eliminate FutureWarnings
+pd.set_option('future.no_silent_downcasting', True)
+
 
 class CoffeeDataExtractor:
     """Extract and prepare coffee data for analytics"""
@@ -410,20 +413,20 @@ class CoffeeDataExtractor:
         df = pd.DataFrame(rows)
         
         # Fill NaN values with appropriate defaults
-        # Boolean columns
+        # Boolean columns - use infer_objects as recommended by pandas FutureWarning
         bool_cols = [col for col in df.columns if col.startswith('has_')]
         for col in bool_cols:
             df[col] = df[col].fillna(False).infer_objects(copy=False)
         
-        # Count columns
+        # Count columns  
         count_cols = [col for col in df.columns if col.startswith('count_')]
         for col in count_cols:
-            df[col] = df[col].fillna(0).astype(int)
+            df[col] = df[col].fillna(0).infer_objects(copy=False)
         
         # Frequency columns
         freq_cols = [col for col in df.columns if col.startswith('freq_')]
         for col in freq_cols:
-            df[col] = df[col].fillna(0.0).astype(float)
+            df[col] = df[col].fillna(0.0).infer_objects(copy=False)
         
         return df
     

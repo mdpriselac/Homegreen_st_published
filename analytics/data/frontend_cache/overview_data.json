@@ -1,0 +1,319 @@
+{
+  "dataset_stats": {
+    "total_coffees": 1708,
+    "countries_analyzed": 34,
+    "regions_analyzed": 134,
+    "sellers_analyzed": 19,
+    "flavor_parse_rate": 0.9959016393442623
+  },
+  "geographic_data": [
+    {
+      "country": "Costa Rica",
+      "total_coffees": 94,
+      "flavor_families": 10,
+      "sellers": 16,
+      "regions": 8
+    },
+    {
+      "country": "China",
+      "total_coffees": 8,
+      "flavor_families": 7,
+      "sellers": 2,
+      "regions": 1
+    },
+    {
+      "country": "Indonesia",
+      "total_coffees": 118,
+      "flavor_families": 10,
+      "sellers": 16,
+      "regions": 6
+    },
+    {
+      "country": "Ecuador",
+      "total_coffees": 6,
+      "flavor_families": 9,
+      "sellers": 3,
+      "regions": 2
+    },
+    {
+      "country": "El Salvador",
+      "total_coffees": 48,
+      "flavor_families": 8,
+      "sellers": 11,
+      "regions": 6
+    },
+    {
+      "country": "Colombia",
+      "total_coffees": 190,
+      "flavor_families": 10,
+      "sellers": 18,
+      "regions": 16
+    },
+    {
+      "country": "Ethiopia",
+      "total_coffees": 213,
+      "flavor_families": 10,
+      "sellers": 17,
+      "regions": 8
+    },
+    {
+      "country": "Vietnam",
+      "total_coffees": 7,
+      "flavor_families": 6,
+      "sellers": 4,
+      "regions": 3
+    },
+    {
+      "country": "Uganda",
+      "total_coffees": 17,
+      "flavor_families": 8,
+      "sellers": 8,
+      "regions": 5
+    },
+    {
+      "country": "Brazil",
+      "total_coffees": 107,
+      "flavor_families": 10,
+      "sellers": 17,
+      "regions": 14
+    },
+    {
+      "country": "Guatemala",
+      "total_coffees": 139,
+      "flavor_families": 10,
+      "sellers": 14,
+      "regions": 11
+    },
+    {
+      "country": "Kenya",
+      "total_coffees": 90,
+      "flavor_families": 9,
+      "sellers": 13,
+      "regions": 9
+    },
+    {
+      "country": "Papua New Guinea",
+      "total_coffees": 36,
+      "flavor_families": 9,
+      "sellers": 13,
+      "regions": 5
+    },
+    {
+      "country": "Yemen",
+      "total_coffees": 12,
+      "flavor_families": 10,
+      "sellers": 4,
+      "regions": 2
+    },
+    {
+      "country": "Peru",
+      "total_coffees": 65,
+      "flavor_families": 10,
+      "sellers": 15,
+      "regions": 5
+    },
+    {
+      "country": "Mexico",
+      "total_coffees": 56,
+      "flavor_families": 9,
+      "sellers": 15,
+      "regions": 5
+    },
+    {
+      "country": "Nicaragua",
+      "total_coffees": 43,
+      "flavor_families": 9,
+      "sellers": 11,
+      "regions": 4
+    },
+    {
+      "country": "Bolivia",
+      "total_coffees": 42,
+      "flavor_families": 8,
+      "sellers": 8,
+      "regions": 3
+    },
+    {
+      "country": "Honduras",
+      "total_coffees": 89,
+      "flavor_families": 9,
+      "sellers": 15,
+      "regions": 8
+    },
+    {
+      "country": "Burundi",
+      "total_coffees": 54,
+      "flavor_families": 9,
+      "sellers": 15,
+      "regions": 9
+    },
+    {
+      "country": "Zambia",
+      "total_coffees": 8,
+      "flavor_families": 9,
+      "sellers": 4,
+      "regions": 1
+    },
+    {
+      "country": "Nepal",
+      "total_coffees": 1,
+      "flavor_families": 4,
+      "sellers": 1,
+      "regions": 1
+    },
+    {
+      "country": "India",
+      "total_coffees": 27,
+      "flavor_families": 9,
+      "sellers": 10,
+      "regions": 8
+    },
+    {
+      "country": "United States: Hawaii",
+      "total_coffees": 14,
+      "flavor_families": 8,
+      "sellers": 5,
+      "regions": 1
+    },
+    {
+      "country": "Timor-Leste",
+      "total_coffees": 11,
+      "flavor_families": 9,
+      "sellers": 6,
+      "regions": 1
+    },
+    {
+      "country": "Congo",
+      "total_coffees": 9,
+      "flavor_families": 8,
+      "sellers": 5,
+      "regions": 1
+    },
+    {
+      "country": "Tanzania",
+      "total_coffees": 31,
+      "flavor_families": 10,
+      "sellers": 12,
+      "regions": 6
+    },
+    {
+      "country": "Jamaica",
+      "total_coffees": 6,
+      "flavor_families": 6,
+      "sellers": 5,
+      "regions": 1
+    },
+    {
+      "country": "Dominican Republic",
+      "total_coffees": 14,
+      "flavor_families": 9,
+      "sellers": 4,
+      "regions": 2
+    },
+    {
+      "country": "Haiti",
+      "total_coffees": 16,
+      "flavor_families": 8,
+      "sellers": 4,
+      "regions": 1
+    },
+    {
+      "country": "Rwanda",
+      "total_coffees": 52,
+      "flavor_families": 9,
+      "sellers": 10,
+      "regions": 2
+    },
+    {
+      "country": "Panama",
+      "total_coffees": 36,
+      "flavor_families": 9,
+      "sellers": 9,
+      "regions": 4
+    },
+    {
+      "country": "Thailand",
+      "total_coffees": 1,
+      "flavor_families": 5,
+      "sellers": 1,
+      "regions": 1
+    },
+    {
+      "country": "Malawi",
+      "total_coffees": 1,
+      "flavor_families": 1,
+      "sellers": 1,
+      "regions": 1
+    }
+  ],
+  "key_findings": [],
+  "top_units": [
+    {
+      "unit": "Thailand",
+      "type": "country",
+      "score": 10.0,
+      "coffee_count": 1
+    },
+    {
+      "unit": "Nepal",
+      "type": "country",
+      "score": 9.0,
+      "coffee_count": 1
+    },
+    {
+      "unit": "United States: Hawaii",
+      "type": "country",
+      "score": 8.5,
+      "coffee_count": 14
+    },
+    {
+      "unit": "China",
+      "type": "country",
+      "score": 8.0,
+      "coffee_count": 8
+    },
+    {
+      "unit": "Timor-Leste",
+      "type": "country",
+      "score": 8.0,
+      "coffee_count": 11
+    },
+    {
+      "unit": "Jamaica",
+      "type": "country",
+      "score": 7.0,
+      "coffee_count": 6
+    },
+    {
+      "unit": "Dominican Republic",
+      "type": "country",
+      "score": 7.0,
+      "coffee_count": 14
+    },
+    {
+      "unit": "Ecuador",
+      "type": "country",
+      "score": 5.0,
+      "coffee_count": 6
+    },
+    {
+      "unit": "Vietnam",
+      "type": "country",
+      "score": 5.0,
+      "coffee_count": 7
+    },
+    {
+      "unit": "Haiti",
+      "type": "country",
+      "score": 5.0,
+      "coffee_count": 16
+    }
+  ],
+  "analysis_progress": {
+    "statistical_complete": true,
+    "tfidf_complete": true,
+    "hierarchical_complete": true,
+    "consensus_complete": true,
+    "summary_complete": true
+  }
+}

@@ -14,7 +14,8 @@ st.set_page_config(
 page_collection = [
     st.Page('page_apps/landing.py', title='Dashboard', default=True, icon='📊'),
     st.Page('page_apps/full_data_set_page.py', title='All Green Coffees', icon='☕'), 
-    st.Page('page_apps/individual_coffee_page.py', title='Individual Coffee Information', icon='🔍'), 
+    st.Page('page_apps/individual_coffee_page.py', title='Individual Coffee Information', icon='🔍'),
+    st.Page('page_apps/analytics_page.py', title='Flavor Analytics', icon='🔬'),
     st.Page('page_apps/about_page.py', title='About the Home Greens Project', icon='ℹ️')
 ]
 

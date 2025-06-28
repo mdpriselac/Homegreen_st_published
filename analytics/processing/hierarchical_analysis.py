@@ -392,7 +392,7 @@ class HierarchicalFlavorAnalyzer:
             metrics['hierarchical_depth'] = total_species / families_with_species
         
         # Concentration index (how concentrated in top families)
-        if family_freqs.size > 0:
+        if len(family_freqs) > 0:
             top_3_freq = sum(sorted(family_freqs, reverse=True)[:3])
             metrics['concentration_index'] = top_3_freq
         

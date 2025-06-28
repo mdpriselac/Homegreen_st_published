@@ -1,0 +1,305 @@
+{
+  "families": [
+    "Floral",
+    "Fruity",
+    "Green/Vegetative",
+    "Nutty/Cocoa",
+    "Other",
+    "Roasted",
+    "Sour/Fermented",
+    "Spices",
+    "Sweet"
+  ],
+  "genera_by_family": {
+    "Fruity": [
+      "Berry",
+      "Citrus Fruit",
+      "Dried Fruit",
+      "Other Fruit"
+    ],
+    "Green/Vegetative": [
+      "Beany",
+      "Fresh"
+    ],
+    "Nutty/Cocoa": [
+      "Cocoa",
+      "Nutty"
+    ],
+    "Floral": [
+      "Black Tea",
+      "Floral"
+    ],
+    "Sweet": [
+      "Brown Sugar",
+      "Overall Sweet",
+      "Vanilla"
+    ],
+    "Spices": [
+      "Brown Spice",
+      "Pepper",
+      "Pungent"
+    ],
+    "Roasted": [
+      "Burnt",
+      "Cereal",
+      "Pipe Tobacco",
+      "Tobacco"
+    ],
+    "Sour/Fermented": [
+      "Alcohol/Fermented",
+      "Sour"
+    ],
+    "Other": [
+      "Chemical",
+      "Papery/Musty"
+    ]
+  },
+  "species_by_genus": {
+    "Citrus Fruit": [
+      "Generic Citrus",
+      "Grapefruit",
+      "Lemon",
+      "Lime",
+      "Orange"
+    ],
+    "Other Fruit": [
+      "Apple",
+      "Banana",
+      "Cherry",
+      "Coconut",
+      "Grape",
+      "Peach",
+      "Pear",
+      "Pineapple",
+      "Pomegranate",
+      "Tropical"
+    ],
+    "Fresh": [
+      "Dark Green",
+      "Green/Vegetative",
+      "Hay-like",
+      "Herb-like",
+      "Raw",
+      "Vegetative"
+    ],
+    "Nutty": [
+      "Almond",
+      "Generic Nutty",
+      "Hazelnut",
+      "Peanuts"
+    ],
+    "Floral": [
+      "Chamomile",
+      "Floral",
+      "Jasmine",
+      "Perfumed",
+      "Rose"
+    ],
+    "Berry": [
+      "Blackberry",
+      "Blueberry",
+      "Generic Berry",
+      "Raspberry",
+      "Strawberry"
+    ],
+    "Overall Sweet": [
+      "Overall Sweet",
+      "Sweet Aromatics"
+    ],
+    "Brown Spice": [
+      "Anise",
+      "Brown Spice",
+      "Cinnamon",
+      "Clove",
+      "Nutmeg"
+    ],
+    "Cocoa": [
+      "Cocoa",
+      "Dark Chocolate",
+      "Milk Chocolate"
+    ],
+    "Brown Sugar": [
+      "Caramelized",
+      "Honey",
+      "Maple Syrup",
+      "Molasses"
+    ],
+    "Vanilla": [
+      "Vanilla",
+      "Vanillin"
+    ],
+    "Tobacco": [
+      "Tobacco"
+    ],
+    "Burnt": [
+      "Acrid",
+      "Ashy",
+      "Burnt",
+      "Smoky"
+    ],
+    "Pipe Tobacco": [
+      "Pipe Tobacco"
+    ],
+    "Sour": [
+      "Acetic Acid",
+      "Butyric Acid",
+      "Citric Acid",
+      "Isovaleric Acid",
+      "Malic Acid",
+      "Sour Aromatics"
+    ],
+    "Papery/Musty": [
+      "Animalic",
+      "Meaty Brothy",
+      "Musty/Earthy",
+      "Papery",
+      "Woody"
+    ],
+    "Cereal": [
+      "Grain",
+      "Malt"
+    ],
+    "Alcohol/Fermented": [
+      "Fermented",
+      "Whiskey",
+      "Winey"
+    ],
+    "Pungent": [
+      "Pungent"
+    ],
+    "Dried Fruit": [
+      "Fig",
+      "Prune",
+      "Raisin"
+    ],
+    "Black Tea": [
+      "Black Tea"
+    ],
+    "Chemical": [
+      "Bitter",
+      "Medicinal",
+      "Petroleum",
+      "Rubber",
+      "Salty"
+    ],
+    "Pepper": [
+      "Pepper"
+    ],
+    "Beany": [
+      "Beany"
+    ]
+  },
+  "all_genera": [
+    "Alcohol/Fermented",
+    "Beany",
+    "Berry",
+    "Black Tea",
+    "Brown Spice",
+    "Brown Sugar",
+    "Burnt",
+    "Cereal",
+    "Chemical",
+    "Citrus Fruit",
+    "Cocoa",
+    "Dried Fruit",
+    "Floral",
+    "Fresh",
+    "Nutty",
+    "Other Fruit",
+    "Overall Sweet",
+    "Papery/Musty",
+    "Pepper",
+    "Pipe Tobacco",
+    "Pungent",
+    "Sour",
+    "Tobacco",
+    "Vanilla"
+  ],
+  "all_species": [
+    "Acetic Acid",
+    "Acrid",
+    "Almond",
+    "Animalic",
+    "Anise",
+    "Apple",
+    "Ashy",
+    "Banana",
+    "Beany",
+    "Bitter",
+    "Black Tea",
+    "Blackberry",
+    "Blueberry",
+    "Brown Spice",
+    "Burnt",
+    "Butyric Acid",
+    "Caramelized",
+    "Chamomile",
+    "Cherry",
+    "Cinnamon",
+    "Citric Acid",
+    "Clove",
+    "Cocoa",
+    "Coconut",
+    "Dark Chocolate",
+    "Dark Green",
+    "Fermented",
+    "Fig",
+    "Floral",
+    "Generic Berry",
+    "Generic Citrus",
+    "Generic Nutty",
+    "Grain",
+    "Grape",
+    "Grapefruit",
+    "Green/Vegetative",
+    "Hay-like",
+    "Hazelnut",
+    "Herb-like",
+    "Honey",
+    "Isovaleric Acid",
+    "Jasmine",
+    "Lemon",
+    "Lime",
+    "Malic Acid",
+    "Malt",
+    "Maple Syrup",
+    "Meaty Brothy",
+    "Medicinal",
+    "Milk Chocolate",
+    "Molasses",
+    "Musty/Earthy",
+    "Nutmeg",
+    "Orange",
+    "Overall Sweet",
+    "Papery",
+    "Peach",
+    "Peanuts",
+    "Pear",
+    "Pepper",
+    "Perfumed",
+    "Petroleum",
+    "Pineapple",
+    "Pipe Tobacco",
+    "Pomegranate",
+    "Prune",
+    "Pungent",
+    "Raisin",
+    "Raspberry",
+    "Raw",
+    "Rose",
+    "Rubber",
+    "Salty",
+    "Smoky",
+    "Sour Aromatics",
+    "Strawberry",
+    "Sweet Aromatics",
+    "Tobacco",
+    "Tropical",
+    "Vanilla",
+    "Vanillin",
+    "Vegetative",
+    "Whiskey",
+    "Winey",
+    "Woody"
+  ]
+}

@@ -12,6 +12,8 @@ from scipy import stats
 from statsmodels.stats.multitest import multipletests
 import warnings
 
+# Opt into future pandas behavior to eliminate FutureWarnings
+pd.set_option('future.no_silent_downcasting', True)
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 
 
@@ -253,8 +255,8 @@ class FlavorStatisticalAnalyzer:
                 results_df.loc[valid_mask, 'p_value_corrected'] = corrected_pvals
                 results_df.loc[valid_mask, 'is_significant'] = rejected
             
-            # Fill NaN values
-            results_df['p_value_corrected'] = results_df['p_value_corrected'].fillna(np.nan)
+            # Fill NaN values - use infer_objects as recommended by pandas FutureWarning
+            results_df['p_value_corrected'] = results_df['p_value_corrected'].fillna(np.nan).infer_objects(copy=False)
             results_df['is_significant'] = results_df['is_significant'].fillna(False).infer_objects(copy=False)
         
         return results_df
