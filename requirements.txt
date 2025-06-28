@@ -14,3 +14,7 @@ scikit-learn
 
 # Web requests
 httpx
+
+# Analytics
+statsmodels
+scipy

@@ -14,3 +14,4 @@
 .venv/** */
 .streamlit
 .streamlit/**
+db_sturcture_info.md
