@@ -1,6 +1,4 @@
 
-*.toml
-!/pyproject.toml
 **/__pycache__/
 **/**/__pycache/
 .DS_Store
@@ -9,7 +7,6 @@
 *.pyc
 **/*.pyc
 **/**/*.pyc
-*.toml
 *.chroma*
 .venv
 .venv/** */
@@ -19,3 +16,5 @@
 !/README.md
 .claude
 .claude/**
+.python-version
+uv.lock
