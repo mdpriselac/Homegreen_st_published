@@ -17,14 +17,26 @@ class FrontendSupabaseClient:
         self.client = create_client(self.supabase_url, self.supabase_anon_key)
     
     @st.cache_data(ttl=3600)  # Cache for 1 hour
-    def get_all_coffees(_self) -> pd.DataFrame:
-        """Get all active coffees with their attributes using optimized single query"""
+    def get_all_coffees(_self, include_expired: bool = False) -> pd.DataFrame:
+        """Get coffees with their attributes using optimized single query
+        
+        Args:
+            include_expired: If True, includes both active and inactive coffees.
+                           If False (default), only returns active coffees.
+        """
         
         try:
-            # Single optimized query with joins - get all active coffees with related data
-            result = _self.client.table('coffees').select(
+            # Build query
+            query = _self.client.table('coffees').select(
                 'id, url, name, first_observed, last_observed, is_active, sellers(name, homepage), coffee_attributes(country_final, subregion_final, micro_final, process_type_final, fermentation, categorized_flavors, altitude_low, altitude_high, observation_date, flavor_notes, varietal)'
-            ).eq('is_active', True).order('first_observed', desc=True).limit(3000).execute()
+            )
+            
+            # Only filter by is_active if we don't want expired coffees
+            if not include_expired:
+                query = query.eq('is_active', True)
+                
+            # Order and execute
+            result = query.order('first_observed', desc=True).limit(5000).execute()
             
             flattened_data = []
             
@@ -49,7 +61,7 @@ class FrontendSupabaseClient:
                     'name': coffee.get('name', ''),
                     'first_observed': coffee.get('first_observed', ''),
                     'last_observed': coffee.get('last_observed', ''),
-                    'is_active': coffee.get('is_active', True),
+                    'is_active': coffee.get('is_active'),
                     'seller': seller_info.get('name', ''),
                     'seller_website': seller_info.get('homepage', ''),
                     'country_final': coffee_attrs.get('country_final', ''),
@@ -129,7 +141,7 @@ class FrontendSupabaseClient:
                 'name': coffee.get('name', ''),
                 'first_observed': coffee.get('first_observed', ''),
                 'last_observed': coffee.get('last_observed', ''),
-                'is_active': coffee.get('is_active', True),
+                'is_active': coffee.get('is_active'),
                 'seller': seller_info.get('name', ''),
                 'seller_website': seller_info.get('homepage', ''),
                 'country_final': coffee_attrs.get('country_final', ''),

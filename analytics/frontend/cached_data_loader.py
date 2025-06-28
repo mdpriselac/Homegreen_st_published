@@ -155,6 +155,15 @@ def get_cached_data_loader() -> CachedDataLoader:
     return _loader
 
 
+def clear_all_caches():
+    """Clear all caches - both the singleton loader and Streamlit's cache"""
+    global _loader
+    # Reset the singleton loader
+    _loader = None
+    # Clear Streamlit's cache_data
+    st.cache_data.clear()
+
+
 # Convenience functions for frontend use
 def load_overview_data() -> Dict[str, Any]:
     """Load overview tab data"""

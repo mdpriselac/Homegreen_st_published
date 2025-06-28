@@ -14,7 +14,7 @@ from collections import defaultdict
 from analytics.frontend.cached_data_loader import (
     load_overview_data, load_unit_profile, get_available_units, 
     load_flavor_hierarchies, load_rankings_data, get_cache_status,
-    show_cache_status_widget, get_cached_data_loader
+    show_cache_status_widget, get_cached_data_loader, clear_all_caches
 )
 from analytics.frontend.data_cache_generator import FrontendDataCacheGenerator
 
@@ -44,24 +44,16 @@ def main():
         return
     
     # Cache management buttons
-    col1, col2, col3 = st.columns([1, 1, 2])
-    
-    with col1:
-        if st.button("🔄 Force Regenerate", help="Regenerate cache with latest code/data"):
-            generate_cache_with_progress()
-            st.rerun()
-    
-    with col2:
-        if not cache_status['fresh']:
-            if st.button("🔄 Update Stale Cache"):
+    if not cache_status['fresh']:
+        col1, col2 = st.columns([1, 3])
+        
+        with col1:
+            if st.button("🔄 Update Cache"):
                 generate_cache_with_progress()
                 st.rerun()
-    
-    with col3:
-        if not cache_status['fresh']:
+        
+        with col2:
             st.warning("⚠️ Data cache may be stale (older than 24 hours)")
-        else:
-            st.info("💡 Use 'Force Regenerate' to update cache with code fixes")
     
     # Create tabs
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -87,6 +79,15 @@ def main():
 def render_overview_tab():
     """Render the overview tab with key insights and summary visualizations"""
     st.header("Dataset Overview")
+    
+    # Add explanation
+    st.markdown("""
+    **What you'll see here:** A high-level view of our coffee dataset and key discoveries about flavor patterns.
+    
+    **How to interpret:** The metrics show the scope of our analysis, while geographic distribution reveals 
+    which countries and regions contribute most to our understanding of coffee flavors. This gives you 
+    context for the more detailed analyses in other tabs.
+    """)
     
     # Load overview data from cache
     overview_data = load_overview_data()
@@ -133,8 +134,7 @@ def render_overview_tab():
                     for metric_name, metric_value in finding['metrics'].items():
                         st.metric(metric_name, metric_value)
     else:
-        # Show analysis progress
-        show_analysis_progress(overview_data)
+        st.info("Key discoveries will appear here as analysis completes.")
     
     # Geographic distribution
     st.subheader("🌍 Geographic Distribution")
@@ -182,6 +182,19 @@ def render_explore_tab():
     """Render the explore tab for detailed unit analysis"""
     st.header("🔍 Detailed Unit Exploration")
     
+    # Add explanation
+    st.markdown("""
+    **What you'll see here:** Deep-dive analysis for individual countries, regions, or sellers showing their unique flavor characteristics.
+    
+    **How to interpret:** 
+    - **Statistical Significance**: Shows flavors that are statistically more common in this origin than globally (p-values < 0.05 after correction)
+    - **TF-IDF Distinctiveness**: Reveals flavors that are most "distinctive" to this origin - high scores mean this flavor strongly characterizes this place
+    - **Odds Ratio**: How many times more likely a flavor is in this origin (e.g., 3.2x means over 3 times more likely)
+    - **Consensus Findings**: Flavors confirmed by multiple analytical methods, giving higher confidence
+    
+    Use this to understand what makes each origin's coffee unique.
+    """)
+    
     # Unit selection interface
     col1, col2 = st.columns(2)
     
@@ -215,6 +228,19 @@ def render_explore_tab():
 def render_flavor_tab():
     """Render the by-flavor tab for flavor-first exploration"""
     st.header("🫘 Flavor-First Exploration")
+    
+    # Add explanation
+    st.markdown("""
+    **What you'll see here:** Start with a specific flavor and discover which origins express it most distinctively.
+    
+    **How to interpret:**
+    - **Flavor Hierarchy**: Choose from Family (broad, like "Fruity"), Genus (more specific, like "Berry"), or Species (most specific, like "Blueberry")
+    - **Most Distinctive Regions**: Places where this flavor is most characteristic - high TF-IDF scores mean this flavor really defines that origin
+    - **Co-occurring Flavors**: Other flavors that commonly appear alongside your selected flavor in the same coffees
+    - **Statistical Significance**: Origins where this flavor appears significantly more often than expected by chance
+    
+    Perfect for exploring "Where can I find the best [specific flavor]?" questions.
+    """)
     
     # Get flavor hierarchies from cache
     flavor_data = load_flavor_hierarchies()
@@ -253,6 +279,19 @@ def render_compare_tab():
     """Render the comparison tab"""
     st.header("⚖️ Compare Units")
     
+    # Add explanation
+    st.markdown("""
+    **What you'll see here:** Side-by-side comparison of multiple origins to understand their similarities and differences.
+    
+    **How to interpret:**
+    - **Total Coffees**: Sample size - larger numbers give more reliable results
+    - **Distinctive Flavors**: Number of flavors that are statistically significant for this origin
+    - **Top Distinctive Flavor**: The single most characteristic flavor for each origin with its TF-IDF score
+    - **TF-IDF Scores**: Higher scores (closer to 1.0) mean the flavor more strongly defines that origin
+    
+    Use this to answer questions like "How does Colombian coffee differ from Ethiopian?" or "Which seller has the most unique profile?"
+    """)
+    
     comparison_type = st.radio("Compare:", ["Countries", "Regions", "Sellers"])
     
     # Get available entities - convert plural to singular properly
@@ -282,6 +321,19 @@ def render_compare_tab():
 def render_rankings_tab():
     """Render the rankings tab"""
     st.header("🏆 Rankings & Leaderboards")
+    
+    # Add explanation
+    st.markdown("""
+    **What you'll see here:** Rankings of origins based on different analytical criteria to identify standout performers.
+    
+    **How to interpret:**
+    - **Most Distinctive Overall**: Origins with the strongest unique flavor identity across all analysis methods
+    - **Most Specialized**: Origins that focus heavily on specific flavor families (high concentration)
+    - **Most Diverse**: Origins expressing the widest range of different flavors
+    - **Minimum Coffees Filter**: Ensures statistical reliability by requiring sufficient sample sizes
+    
+    Rankings help identify origins that excel in different ways - some are distinctive, others are diverse, some are highly specialized.
+    """)
     
     col1, col2, col3 = st.columns(3)
     
@@ -323,6 +375,11 @@ def generate_cache_with_progress():
             progress_bar.progress(20)
             
             cache_data = generator.generate_full_cache()
+            progress_bar.progress(90)
+            
+            # Clear all caches to force reload of new data
+            status_text.text("Clearing old cache...")
+            clear_all_caches()
             progress_bar.progress(100)
             
             status_text.text("✅ Cache generation completed!")
@@ -335,43 +392,6 @@ def generate_cache_with_progress():
 
 # Helper functions
 
-def show_analysis_progress(overview_data: Dict[str, Any]):
-    """Show analysis progress when full findings aren't available"""
-    try:
-        analysis_progress = overview_data.get('analysis_progress', {})
-        
-        st.write("**Analysis Progress:**")
-        progress_items = [
-            ("Statistical Significance", analysis_progress.get('statistical_complete', False)),
-            ("TF-IDF Distinctiveness", analysis_progress.get('tfidf_complete', False)),
-            ("Hierarchical Patterns", analysis_progress.get('hierarchical_complete', False)),
-            ("Cross-method Validation", analysis_progress.get('consensus_complete', False)),
-            ("Executive Summary", analysis_progress.get('summary_complete', False))
-        ]
-        
-        for name, completed in progress_items:
-            if completed:
-                st.write(f"✅ {name} analysis completed")
-            else:
-                st.write(f"⏳ {name} analysis pending")
-        
-        # Show basic dataset info
-        dataset_stats = overview_data.get('dataset_stats', {})
-        if dataset_stats:
-            st.write("**Current Dataset:**")
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                if 'total_coffees' in dataset_stats:
-                    st.write(f"📊 {dataset_stats['total_coffees']} total coffees")
-            with col2:
-                if 'countries_analyzed' in dataset_stats:
-                    st.write(f"🌍 {dataset_stats['countries_analyzed']} countries")
-            with col3:
-                if 'flavor_parse_rate' in dataset_stats:
-                    st.write(f"🫘 {dataset_stats['flavor_parse_rate']:.1%} with flavor data")
-                        
-    except Exception as e:
-        st.info("Analysis system is initializing...")
 
 
 def extract_basic_stats(all_results: Dict[str, Any]) -> Dict[str, Any]:

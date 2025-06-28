@@ -184,6 +184,7 @@ def main():
         - **📊 Dashboard** (You are here) - View market overview and trends
         - **☕ All Green Coffees** - Browse and filter the complete coffee inventory
         - **🔍 Individual Coffee Information** - Explore detailed profiles and flavor analysis. Select a coffee first at the All Green Coffees page.
+        - **🔬 Flavor Analytics** - Explore the relationships between different countries, regions, sellers and flavors.
         - **ℹ️ About the Home Greens Project** - Learn more about our mission and methodology
         """)
     

@@ -15,6 +15,7 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 import logging
 from collections import defaultdict
+import math
 
 from analytics.processing.integrated_analysis import get_integrated_analysis, IntegratedFlavorAnalyzer
 
@@ -39,6 +40,24 @@ class FrontendDataCacheGenerator:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.all_results = None
         self.analyzer = None
+    
+    def _sanitize_for_json(self, obj: Any) -> Any:
+        """Recursively sanitize objects for JSON serialization, handling Infinity and NaN"""
+        if isinstance(obj, dict):
+            return {k: self._sanitize_for_json(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._sanitize_for_json(item) for item in obj]
+        elif isinstance(obj, float):
+            if math.isnan(obj):
+                return None
+            elif math.isinf(obj):
+                return None  # or "Infinity" / "-Infinity" if you want to preserve the sign
+            else:
+                return obj
+        elif pd.isna(obj):
+            return None
+        else:
+            return obj
         
     def generate_full_cache(self):
         """Generate complete frontend data cache"""
@@ -222,7 +241,7 @@ class FrontendDataCacheGenerator:
                 if not df.empty:
                     unit_df = df[df['unit_name'] == unit_name]
                     if not unit_df.empty:
-                        findings[taxonomy_level] = unit_df.to_dict('records')
+                        findings[taxonomy_level] = self._sanitize_for_json(unit_df.to_dict('records'))
         
         return findings
     
@@ -242,7 +261,7 @@ class FrontendDataCacheGenerator:
                 if not df.empty:
                     unit_df = df[df['unit_name'] == unit_name]
                     if not unit_df.empty:
-                        top_flavors = unit_df.nlargest(10, 'tfidf_score').to_dict('records')
+                        top_flavors = self._sanitize_for_json(unit_df.nlargest(10, 'tfidf_score').to_dict('records'))
                         findings[taxonomy_level] = {
                             'top_flavors': top_flavors,
                             'total_unique_flavors': len(unit_df)
@@ -450,14 +469,14 @@ class FrontendDataCacheGenerator:
         if 'statistical' in self.all_results:
             for key, df in self.all_results['statistical'].items():
                 if isinstance(df, pd.DataFrame) and not df.empty:
-                    summary = df.to_dict('records')
+                    summary = self._sanitize_for_json(df.to_dict('records'))
                     export_data['statistical_summary'].extend(summary)
         
         # TF-IDF findings summary
         if 'tfidf' in self.all_results:
             for key, df in self.all_results['tfidf'].items():
                 if isinstance(df, pd.DataFrame) and not df.empty:
-                    summary = df.to_dict('records')
+                    summary = self._sanitize_for_json(df.to_dict('records'))
                     export_data['tfidf_summary'].extend(summary)
         
         return export_data
