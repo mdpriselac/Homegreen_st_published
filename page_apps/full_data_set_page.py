@@ -12,7 +12,7 @@ def full_data_page():
     st.sidebar.markdown("### Filters")
     
     # Add checkbox for including expired coffees
-    include_expired = st.sidebar.checkbox("Include expired coffees", value=False)
+    include_expired = st.sidebar.checkbox("Include expired coffees that are no longer for sale", value=False)
     st.sidebar.markdown("---")
     
     # Load data based on checkbox
@@ -38,7 +38,7 @@ def full_data_page():
         st.write("Below you will find the full set of coffees that we believe are actively for sale. That accuracy may not be 100%, however, as you will see towards the bottom of the list. The list is sorted by how recently we've spotted them for sale. You can filter the data by selecting values in the sidebar. The data will update as you select filters. You can sort the data by clicking on the column headers. You can resize the columns by dragging them and resize the data frame by dragging the bottom right corner. Clicking on the far lefthand side of a row will select that row. Clicking the button below will take you to a page with more information on the selected coffee.")
 
     # Add filters
-    columns_to_filter = ['Country', 'Seller','Process','Expired?']
+    columns_to_filter = ['Country', 'Seller','Process']
     filters = {}
     
     for column in columns_to_filter:
