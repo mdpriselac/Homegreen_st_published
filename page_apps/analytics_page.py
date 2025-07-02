@@ -23,7 +23,7 @@ def main():
     """Main analytics dashboard page"""
     st.title("🔬 Coffee Flavor Analytics")
     st.markdown("Discover how coffee flavors relate to their origins through statistical and computational analysis.")
-    
+    st.info("Note that this is purely experimental and undergoing a lot of iteration. Some information is fun and useful. Some is not. When we're happy with our flavor analytics, we'll make a clear post explaining the information and simplifying the presentation.")
     # Show cache status in sidebar
     show_cache_status_widget()
     
