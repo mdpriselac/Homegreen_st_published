@@ -76,7 +76,7 @@ def load_all_coffees_df(include_expired: bool = False) -> pd.DataFrame:
         'seller', 'uid', 'Name', 'country_final', 'subregion_final',
         'micro_final', 'Flavor Notes', 'process_type', 'fermentation',
         'Varietal Cleaned', 'Varietal', 'first_date_observed', 'expired',
-        'categorized_flavors'  # Add this so it doesn't get filtered out
+        'categorized_flavors', 'average_per_lb', 'cheapest_per_lb', 'highest_per_lb'
     ]
     
     # Filter to available columns
@@ -100,7 +100,10 @@ def load_all_coffees_df(include_expired: bool = False) -> pd.DataFrame:
         'fermentation': 'Fermented?',
         'first_date_observed': 'Date First Seen',
         'expired': 'Expired?',
-        'Flavor Notes': 'Flavor Notes'
+        'Flavor Notes': 'Flavor Notes',
+        'average_per_lb': 'Avg $/LB',
+        'cheapest_per_lb': 'Min $/LB',
+        'highest_per_lb': 'Max $/LB'
     }
     
     out_df.rename(columns=col_renames, inplace=True)
@@ -187,7 +190,7 @@ def get_coffee_by_uid(coffee_uid: str) -> pd.Series:
         'seller', 'uid', 'Name', 'country_final', 'subregion_final',
         'micro_final', 'Flavor Notes', 'process_type', 'fermentation',
         'Varietal Cleaned', 'Varietal', 'first_date_observed', 'expired',
-        'categorized_flavors'
+        'categorized_flavors', 'full_pricing_data'
     ]
     
     available_cols = [col for col in display_cols if col in df.columns]

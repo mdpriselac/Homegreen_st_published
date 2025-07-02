@@ -109,6 +109,88 @@ def coffee_info(coffee_data):
         combined_varietal = (str(varietal_cleaned) + str(varietal)).replace('[','').replace(']','').replace('"','').replace("'",'')
         basic_c2.write(f"Varietal(s): {combined_varietal}")
     
+    # Pricing information section
+    pricing_c = st.container()
+    pricing_c.subheader('Pricing Information')
+    
+    # Get pricing data from detailed coffee info
+    try:
+        detailed_info = get_coffee_details(int(coffee_id))
+        coffee_attrs = detailed_info.get('coffee_attributes', [])
+        
+        if coffee_attrs:
+            attrs = coffee_attrs[0] if isinstance(coffee_attrs, list) else coffee_attrs
+            full_pricing_data = attrs.get('full_pricing_data', None)
+            
+            if full_pricing_data and len(full_pricing_data) > 0:
+                try:
+                    # Handle both string JSON and already parsed list
+                    if isinstance(full_pricing_data, str):
+                        import json
+                        pricing_list = json.loads(full_pricing_data)
+                    else:
+                        pricing_list = full_pricing_data
+                    
+                    if pricing_list and isinstance(pricing_list, list) and len(pricing_list) > 0:
+                        # Sort by pounds from lowest to highest
+                        sorted_pricing = sorted(pricing_list, key=lambda x: float(x.get('pounds', x.get('size', 0))))
+                        
+                        # Create a nice table display
+                        pricing_data = []
+                        for item in sorted_pricing:
+                            # Use 'pounds' field if available, otherwise 'size'
+                            pounds = item.get('pounds', item.get('size', 'N/A'))
+                            total_price = item.get('total_price', 'N/A')
+                            price_per_lb = item.get('price_per_lb', 'N/A')
+                            
+                            pricing_data.append({
+                                'Pounds': f"{pounds} LB" if isinstance(pounds, (int, float)) else str(pounds),
+                                'Total Price': f"${total_price:.2f}" if isinstance(total_price, (int, float)) else 'N/A',
+                                'Price/LB': f"${price_per_lb:.2f}" if isinstance(price_per_lb, (int, float)) else 'N/A'
+                            })
+                        
+                        # Display as a styled table
+                        import pandas as pd
+                        pricing_df = pd.DataFrame(pricing_data)
+                        
+                        # Use HTML table for better styling
+                        html_table = pricing_df.to_html(index=False, escape=False, classes='pricing-table')
+                        pricing_c.markdown(html_table, unsafe_allow_html=True)
+                        
+                        # Add some custom CSS for better styling
+                        pricing_c.markdown("""
+                        <style>
+                        .pricing-table {
+                            border-collapse: collapse;
+                            margin: 20px 0;
+                            font-size: 14px;
+                            width: 100%;
+                        }
+                        .pricing-table th, .pricing-table td {
+                            border: 1px solid #ddd;
+                            padding: 8px;
+                            text-align: center;
+                        }
+                        .pricing-table th {
+                            background-color: #f2f2f2;
+                            font-weight: bold;
+                        }
+                        .pricing-table tr:nth-child(even) {
+                            background-color: #f9f9f9;
+                        }
+                        </style>
+                        """, unsafe_allow_html=True)
+                    else:
+                        pricing_c.write("No pricing data available for this coffee.")
+                except (ValueError, TypeError, KeyError) as e:
+                    pricing_c.write("No pricing data available for this coffee.")
+            else:
+                pricing_c.write("No pricing data available for this coffee.")
+        else:
+            pricing_c.write("No pricing data available for this coffee.")
+    except Exception as e:
+        pricing_c.write("No pricing data available for this coffee.")
+    
     # Flavor information section
     flav_c = st.container()
     flav_c.subheader('Flavor Information')

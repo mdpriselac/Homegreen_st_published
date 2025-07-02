@@ -28,7 +28,7 @@ class FrontendSupabaseClient:
         try:
             # Build query
             query = _self.client.table('coffees').select(
-                'id, url, name, first_observed, last_observed, is_active, sellers(name, homepage), coffee_attributes(country_final, subregion_final, micro_final, process_type_final, fermentation, categorized_flavors, altitude_low, altitude_high, observation_date, flavor_notes, varietal)'
+                'id, url, name, first_observed, last_observed, is_active, sellers(name, homepage), coffee_attributes(country_final, subregion_final, micro_final, process_type_final, fermentation, categorized_flavors, altitude_low, altitude_high, observation_date, flavor_notes, varietal, average_per_lb, cheapest_per_lb, highest_per_lb)'
             )
             
             # Only filter by is_active if we don't want expired coffees
@@ -74,7 +74,10 @@ class FrontendSupabaseClient:
                     'altitude_high': coffee_attrs.get('altitude_high', ''),
                     'observation_date': coffee_attrs.get('observation_date', ''),
                     'flavor_notes': coffee_attrs.get('flavor_notes', ''),
-                    'varietal': coffee_attrs.get('varietal', '')
+                    'varietal': coffee_attrs.get('varietal', ''),
+                    'average_per_lb': coffee_attrs.get('average_per_lb', ''),
+                    'cheapest_per_lb': coffee_attrs.get('cheapest_per_lb', ''),
+                    'highest_per_lb': coffee_attrs.get('highest_per_lb', '')
                 }
                 flattened_data.append(flattened_row)
             
@@ -88,7 +91,8 @@ class FrontendSupabaseClient:
                 'id', 'url', 'name', 'first_observed', 'last_observed', 'is_active',
                 'seller', 'seller_website', 'country_final', 'subregion_final', 
                 'micro_final', 'process_type_final', 'fermentation', 'categorized_flavors',
-                'altitude_low', 'altitude_high', 'observation_date', 'flavor_notes'
+                'altitude_low', 'altitude_high', 'observation_date', 'flavor_notes', 'varietal',
+                'average_per_lb', 'cheapest_per_lb', 'highest_per_lb'
             ])
     
     @st.cache_data(ttl=3600)  # Cache for 1 hour
@@ -154,7 +158,11 @@ class FrontendSupabaseClient:
                 'altitude_high': coffee_attrs.get('altitude_high', ''),
                 'observation_date': coffee_attrs.get('observation_date', ''),
                 'flavor_notes': coffee_attrs.get('flavor_notes', ''),
-                'varietal': coffee_attrs.get('varietal', '')
+                'varietal': coffee_attrs.get('varietal', ''),
+                'average_per_lb': coffee_attrs.get('average_per_lb', ''),
+                'cheapest_per_lb': coffee_attrs.get('cheapest_per_lb', ''),
+                'highest_per_lb': coffee_attrs.get('highest_per_lb', ''),
+                'full_pricing_data': coffee_attrs.get('full_pricing_data', '')
             }
             
             return pd.DataFrame([flattened_row])

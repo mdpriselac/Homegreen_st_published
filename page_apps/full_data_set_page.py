@@ -56,11 +56,21 @@ def full_data_page():
     if 'Date First Seen' in df_filtered.columns:
         df_filtered = df_filtered.sort_values(by='Date First Seen', ascending=False)
     
+    # Handle pricing columns - format as currency and handle nulls
+    pricing_cols = ['Avg $/LB', 'Min $/LB', 'Max $/LB']
+    for col in pricing_cols:
+        if col in df_filtered.columns:
+            # Convert to numeric first, then format
+            df_filtered[col] = pd.to_numeric(df_filtered[col], errors='coerce')
+            # Format as currency string, replace NaN with N/A
+            df_filtered[col] = df_filtered[col].apply(lambda x: f"${x:.2f}" if pd.notna(x) and x > 0 else 'N/A')
+    
     col_config = {'uid': None}
     
     # Define column order, using only columns that exist
     desired_order = [
         'Seller', 'Name', 'Country', 'Region(s)', 'Micro Location', 
+        'Avg $/LB', 'Min $/LB', 'Max $/LB',
         'Flavor Notes', 'Varietal(s)', 'Process', 'Fermented?', 
         'Date First Seen', 'Expired?'
     ]
