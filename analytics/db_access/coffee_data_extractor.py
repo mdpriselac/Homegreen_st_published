@@ -36,7 +36,8 @@ class CoffeeDataExtractor:
         # Step 1: Pull core dataset from coffee_attributes where is_cleaned = true
         try:
             attributes_result = _self.client.table('coffee_attributes').select(
-                'coffee_id, country_final, subregion_final, categorized_flavors'
+                'coffee_id, country_final, subregion_final, categorized_flavors, '
+                'process_type_final, varietal, average_per_lb, cheapest_per_lb, highest_per_lb'
             ).eq('is_cleaned', True).execute()
             
             attributes_df = pd.DataFrame(attributes_result.data)
@@ -45,10 +46,10 @@ class CoffeeDataExtractor:
             st.error(f"Error extracting coffee attributes: {e}")
             attributes_df = pd.DataFrame()
         
-        # Step 2: Pull coffee-seller mapping
+        # Step 2: Pull coffee-seller mapping with temporal data
         try:
             coffee_seller_result = _self.client.table('coffees').select(
-                'id, name, seller_id, sellers(id, name)'
+                'id, name, seller_id, first_observed, last_observed, is_active, sellers(id, name)'
             ).execute()
             
             # Flatten the nested seller data
@@ -64,7 +65,10 @@ class CoffeeDataExtractor:
                     'coffee_id': coffee['id'],
                     'coffee_name': coffee['name'],
                     'seller_id': coffee.get('seller_id'),
-                    'seller_name': seller_info.get('name', 'Unknown')
+                    'seller_name': seller_info.get('name', 'Unknown'),
+                    'first_observed': coffee.get('first_observed'),
+                    'last_observed': coffee.get('last_observed'),
+                    'is_active': coffee.get('is_active')
                 })
             
             coffee_seller_df = pd.DataFrame(coffee_seller_data)
@@ -118,8 +122,94 @@ class CoffeeDataExtractor:
                         pass
         
         return []
-    
-    def merge_and_prepare_data(self, attributes_df: pd.DataFrame, 
+
+    def _parse_varietal(self, varietal_val) -> List[str]:
+        """Parse varietal field into list of varietal names"""
+        if pd.isna(varietal_val) or varietal_val is None:
+            return []
+
+        if isinstance(varietal_val, list):
+            return [v.strip() for v in varietal_val if v and str(v).strip()]
+
+        if isinstance(varietal_val, str):
+            val = varietal_val.strip()
+            if not val:
+                return []
+            # Try parsing as list representation
+            for parser in [json.loads, lambda s: json.loads(s.replace("'", '"'))]:
+                try:
+                    parsed = parser(val)
+                    if isinstance(parsed, list):
+                        return [str(v).strip() for v in parsed if v and str(v).strip()]
+                except Exception:
+                    continue
+            # Try ast.literal_eval
+            try:
+                import ast
+                parsed = ast.literal_eval(val)
+                if isinstance(parsed, list):
+                    return [str(v).strip() for v in parsed if v and str(v).strip()]
+            except Exception:
+                pass
+            # Treat as single varietal or comma-separated
+            if ',' in val:
+                return [v.strip() for v in val.split(',') if v.strip()]
+            return [val] if val else []
+
+        return []
+
+    def _normalize_process_type(self, process_val) -> Optional[str]:
+        """Normalize process type to canonical categories"""
+        if pd.isna(process_val) or process_val is None:
+            return None
+
+        val = str(process_val).strip().lower()
+        if not val:
+            return None
+
+        # Mapping of variations to canonical names
+        process_map = {
+            'washed': 'Washed',
+            'fully washed': 'Washed',
+            'fully-washed': 'Washed',
+            'double washed': 'Washed',
+            'wet process': 'Washed',
+            'natural': 'Natural',
+            'dry process': 'Natural',
+            'sun dried': 'Natural',
+            'honey': 'Honey',
+            'honey process': 'Honey',
+            'yellow honey': 'Honey',
+            'red honey': 'Honey',
+            'black honey': 'Honey',
+            'white honey': 'Honey',
+            'pulped natural': 'Honey',
+            'wet hulled': 'Wet Hulled',
+            'wet-hulled': 'Wet Hulled',
+            'giling basah': 'Wet Hulled',
+            'anaerobic': 'Anaerobic',
+            'anaerobic natural': 'Anaerobic',
+            'anaerobic washed': 'Anaerobic',
+            'carbonic maceration': 'Anaerobic',
+            'multi-stage fermentation': 'Anaerobic',
+            'monsoon': 'Other',
+            'monsooned': 'Other',
+            'decaf': 'Other',
+            'decaffeinated': 'Other',
+        }
+
+        # Try exact match first
+        if val in process_map:
+            return process_map[val]
+
+        # Try substring match
+        for key, canonical in process_map.items():
+            if key in val:
+                return canonical
+
+        return process_val.strip()  # Return original if no match
+
+    def merge_and_prepare_data(self, attributes_df: pd.DataFrame,
                              coffee_seller_df: pd.DataFrame) -> pd.DataFrame:
         """
         Merge datasets and prepare for analysis
@@ -140,19 +230,38 @@ class CoffeeDataExtractor:
         
         # Parse flavors
         merged_df['flavors_parsed'] = merged_df['categorized_flavors'].apply(self._parse_flavors)
-        
+
         # Add metadata
         merged_df['has_flavors'] = merged_df['flavors_parsed'].apply(lambda x: len(x) > 0)
         merged_df['flavor_count'] = merged_df['flavors_parsed'].apply(len)
-        
+
         # Create region key
         merged_df['region_key'] = merged_df.apply(
-            lambda row: f"{row['country_final']}_{row['subregion_final']}" 
-            if pd.notna(row['subregion_final']) and row['subregion_final'] 
+            lambda row: f"{row['country_final']}_{row['subregion_final']}"
+            if pd.notna(row['subregion_final']) and row['subregion_final']
             else None,
             axis=1
         )
-        
+
+        # Parse varietal field
+        merged_df['varietals_parsed'] = merged_df['varietal'].apply(self._parse_varietal)
+        merged_df['has_varietal'] = merged_df['varietals_parsed'].apply(lambda x: len(x) > 0)
+
+        # Normalize process type
+        merged_df['process_type_clean'] = merged_df['process_type_final'].apply(self._normalize_process_type)
+        merged_df['has_process'] = merged_df['process_type_clean'].notna()
+
+        # Parse price fields to numeric
+        for price_col in ['average_per_lb', 'cheapest_per_lb', 'highest_per_lb']:
+            if price_col in merged_df.columns:
+                merged_df[price_col] = pd.to_numeric(merged_df[price_col], errors='coerce')
+        merged_df['has_price'] = merged_df['average_per_lb'].notna()
+
+        # Parse date fields and compute lifespan
+        merged_df['first_observed'] = pd.to_datetime(merged_df['first_observed'], errors='coerce')
+        merged_df['last_observed'] = pd.to_datetime(merged_df['last_observed'], errors='coerce')
+        merged_df['lifespan_days'] = (merged_df['last_observed'] - merged_df['first_observed']).dt.days
+
         return merged_df
     
     def aggregate_by_country(self, merged_df: pd.DataFrame) -> Dict[str, Dict[str, Any]]:
@@ -551,6 +660,53 @@ class CoffeeDataExtractor:
         
         return hierarchical_data
     
+    def prepare_cross_feature_format(self, merged_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Prepare flat per-coffee DataFrame for cross-feature analysis.
+        Each row is one coffee with all attributes available.
+        """
+        rows = []
+        for _, row in merged_df.iterrows():
+            # Extract flavor families as a list
+            flavor_families = list(set(
+                f['family'] for f in row.get('flavors_parsed', [])
+                if f.get('family')
+            ))
+            flavor_genera = list(set(
+                f['genus'] for f in row.get('flavors_parsed', [])
+                if f.get('genus')
+            ))
+            flavor_species = list(set(
+                f['species'] for f in row.get('flavors_parsed', [])
+                if f.get('species')
+            ))
+
+            rows.append({
+                'coffee_id': row.get('coffee_id'),
+                'coffee_name': row.get('coffee_name'),
+                'country': row.get('country_final'),
+                'region': row.get('subregion_final'),
+                'seller': row.get('seller_name'),
+                'process_type': row.get('process_type_clean'),
+                'varietals': row.get('varietals_parsed', []),
+                'avg_price': row.get('average_per_lb'),
+                'min_price': row.get('cheapest_per_lb'),
+                'max_price': row.get('highest_per_lb'),
+                'flavor_families': flavor_families,
+                'flavor_genera': flavor_genera,
+                'flavor_species': flavor_species,
+                'first_observed': row.get('first_observed'),
+                'last_observed': row.get('last_observed'),
+                'is_active': row.get('is_active'),
+                'lifespan_days': row.get('lifespan_days'),
+                'has_flavors': row.get('has_flavors', False),
+                'has_price': row.get('has_price', False),
+                'has_varietal': row.get('has_varietal', False),
+                'has_process': row.get('has_process', False),
+            })
+
+        return pd.DataFrame(rows)
+
     def _count_flavors_by_level(self, flavors: List[Dict[str, str]]) -> Dict[str, Dict[str, int]]:
         """Count flavor occurrences at each taxonomy level"""
         counts = {
@@ -633,8 +789,12 @@ class CoffeeDataExtractor:
         tfidf_data = self.prepare_tfidf_format(country_data, region_data, seller_data)
         hierarchical_data = self.prepare_hierarchical_format(country_data, region_data, seller_data)
         
+        # Prepare cross-feature flat format
+        cross_feature_df = self.prepare_cross_feature_format(merged_df)
+
         return {
             'raw_merged_df': merged_df,
+            'cross_feature_df': cross_feature_df,
             'country_aggregated': country_data,
             'region_aggregated': region_data,
             'seller_aggregated': seller_data,

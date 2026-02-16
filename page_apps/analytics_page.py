@@ -12,11 +12,17 @@ from typing import Dict, List, Any, Optional
 from collections import defaultdict
 
 from analytics.frontend.cached_data_loader import (
-    load_overview_data, load_unit_profile, get_available_units, 
+    load_overview_data, load_unit_profile, get_available_units,
     load_flavor_hierarchies, load_rankings_data, get_cache_status,
-    show_cache_status_widget, get_cached_data_loader, clear_all_caches
+    show_cache_status_widget, get_cached_data_loader, clear_all_caches,
+    load_turnover_data, load_price_analysis_data, load_cooccurrence_data,
+    load_data_completeness
 )
 from analytics.frontend.data_cache_generator import FrontendDataCacheGenerator
+from page_apps.analytics.turnover_tab import render_turnover_tab
+from page_apps.analytics.price_tab import render_price_tab
+from page_apps.analytics.process_varietal_tab import render_process_varietal_tab
+from page_apps.analytics.cross_feature_tab import render_cross_feature_tab
 
 
 def main():
@@ -55,24 +61,36 @@ def main():
         with col2:
             st.warning("⚠️ Data cache may be stale (older than 24 hours)")
     
-    # Create tabs
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📊 Overview", "🔍 Explore", "🫘 By Flavor", "⚖️ Compare", "🏆 Rankings"
+    # Create tabs - restructured layout
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        "📊 Overview",
+        "🫘 Flavor & Origin",
+        "🏷️ Process & Varietal",
+        "💰 Price Analysis",
+        "📅 Seller Turnover",
+        "🔗 Cross-Feature",
+        "🏆 Rankings"
     ])
-    
+
     with tab1:
         render_overview_tab()
-    
+
     with tab2:
-        render_explore_tab()
-    
+        render_flavor_origin_tab()
+
     with tab3:
-        render_flavor_tab()
-    
+        render_process_varietal_tab()
+
     with tab4:
-        render_compare_tab()
-    
+        render_price_tab()
+
     with tab5:
+        render_turnover_tab()
+
+    with tab6:
+        render_cross_feature_tab()
+
+    with tab7:
         render_rankings_tab()
 
 
@@ -122,19 +140,55 @@ def render_overview_tab():
             value=f"{basic_stats.get('flavor_parse_rate', 0):.1%}" if basic_stats.get('flavor_parse_rate') else 'N/A'
         )
     
+    # Data completeness section
+    completeness = load_data_completeness()
+    if completeness and completeness.get('has_data'):
+        st.subheader("📋 Data Completeness")
+        fields = completeness.get('fields', {})
+        cols = st.columns(4)
+        field_labels = [
+            ('flavor', 'Flavor Notes'),
+            ('country', 'Country'),
+            ('process_type', 'Process Method'),
+            ('varietal', 'Varietal'),
+        ]
+        for i, (key, label) in enumerate(field_labels):
+            with cols[i]:
+                rate = fields.get(key, {}).get('rate', 0)
+                count = fields.get(key, {}).get('count', 0)
+                st.metric(label, f"{rate:.0%}", help=f"{count} coffees")
+
+        cols2 = st.columns(4)
+        field_labels_2 = [
+            ('price', 'Price'),
+            ('region', 'Region'),
+            ('dates', 'Temporal Data'),
+        ]
+        for i, (key, label) in enumerate(field_labels_2):
+            with cols2[i]:
+                rate = fields.get(key, {}).get('rate', 0)
+                count = fields.get(key, {}).get('count', 0)
+                st.metric(label, f"{rate:.0%}", help=f"{count} coffees")
+
     # Key findings section
     st.subheader("🎯 Key Discoveries")
-    
+
     key_findings = overview_data.get('key_findings', [])
     if key_findings:
-        for i, finding in enumerate(key_findings[:5]):  # Show top 5 findings
+        for i, finding in enumerate(key_findings[:5]):
             with st.expander(f"Discovery {i+1}: {finding.get('title', 'Key Finding')}"):
                 st.markdown(finding.get('description', ''))
                 if 'metrics' in finding:
                     for metric_name, metric_value in finding['metrics'].items():
                         st.metric(metric_name, metric_value)
     else:
-        st.info("Key discoveries will appear here as analysis completes.")
+        # Generate fallback key findings from available data
+        fallback_findings = _generate_fallback_findings(overview_data, basic_stats)
+        if fallback_findings:
+            for line in fallback_findings:
+                st.markdown(f"- {line}")
+        else:
+            st.info("Key discoveries will appear here as analysis completes.")
     
     # Geographic distribution
     st.subheader("🌍 Geographic Distribution")
@@ -178,20 +232,44 @@ def render_overview_tab():
         st.info("Geographic data will appear here once analysis is complete.")
 
 
-def render_explore_tab():
-    """Render the explore tab for detailed unit analysis"""
-    st.header("🔍 Detailed Unit Exploration")
+def render_flavor_origin_tab():
+    """Consolidated tab: Explore + By Flavor + Compare in one tab with sub-sections"""
+    st.header("Flavor & Origin Analysis")
+
+    section = st.radio(
+        "Analysis mode:",
+        ["Explore by Origin", "Explore by Flavor", "Compare Origins"],
+        horizontal=True,
+        key="flavor_origin_section"
+    )
+
+    if section == "Explore by Origin":
+        render_explore_section()
+    elif section == "Explore by Flavor":
+        render_flavor_section()
+    elif section == "Compare Origins":
+        render_compare_section()
+
+
+def render_explore_section():
+    """Render the explore section for detailed unit analysis (was render_explore_tab)"""
     
     # Add explanation
     st.markdown("""
     **What you'll see here:** Deep-dive analysis for individual countries, regions, or sellers showing their unique flavor characteristics.
-    
-    **How to interpret:** 
-    - **Statistical Significance**: Shows flavors that are statistically more common in this origin than globally (p-values < 0.05 after correction)
-    - **TF-IDF Distinctiveness**: Reveals flavors that are most "distinctive" to this origin - high scores mean this flavor strongly characterizes this place
-    - **Odds Ratio**: How many times more likely a flavor is in this origin (e.g., 3.2x means over 3 times more likely)
-    - **Consensus Findings**: Flavors confirmed by multiple analytical methods, giving higher confidence
-    
+
+    **How to interpret:**
+    - **Statistical Significance**: Uses Fisher's exact test (or chi-square for larger samples) to find flavors that
+      appear significantly more often in this origin than globally. P-values are corrected for multiple comparisons
+      using the Benjamini-Hochberg method (reduces false positives when testing many flavors at once).
+    - **Odds Ratio**: How many times more likely a flavor is in this origin (e.g., 3.2x means this origin's coffees
+      are 3.2 times more likely to have this flavor than coffees from other origins).
+    - **TF-IDF Distinctiveness** ("uniqueness score"): Borrowed from text analysis — it measures how distinctive a
+      flavor is by weighing both frequency here AND rarity elsewhere. A flavor that's common everywhere scores low;
+      a flavor that's common here but rare elsewhere scores high.
+    - **Consensus Findings**: Flavors confirmed by multiple independent methods, giving higher confidence the
+      pattern is real and not a statistical artifact.
+
     Use this to understand what makes each origin's coffee unique.
     """)
     
@@ -225,10 +303,8 @@ def render_explore_tab():
             st.error(f"Error loading data for {selected_unit}: {str(e)}")
 
 
-def render_flavor_tab():
-    """Render the by-flavor tab for flavor-first exploration"""
-    st.header("🫘 Flavor-First Exploration")
-    
+def render_flavor_section():
+    """Render the by-flavor section for flavor-first exploration"""
     # Add explanation
     st.markdown("""
     **What you'll see here:** Start with a specific flavor and discover which origins express it most distinctively.
@@ -275,10 +351,8 @@ def render_flavor_tab():
         display_flavor_analysis(selected_family, selected_genus, selected_species)
 
 
-def render_compare_tab():
-    """Render the comparison tab"""
-    st.header("⚖️ Compare Units")
-    
+def render_compare_section():
+    """Render the comparison section"""
     # Add explanation
     st.markdown("""
     **What you'll see here:** Side-by-side comparison of multiple origins to understand their similarities and differences.
@@ -320,38 +394,41 @@ def render_compare_tab():
 
 def render_rankings_tab():
     """Render the rankings tab"""
-    st.header("🏆 Rankings & Leaderboards")
-    
-    # Add explanation
+    st.header("Rankings & Leaderboards")
+
     st.markdown("""
-    **What you'll see here:** Rankings of origins based on different analytical criteria to identify standout performers.
-    
+    **What you'll see here:** Rankings of origins based on different analytical criteria.
+
     **How to interpret:**
-    - **Most Distinctive Overall**: Origins with the strongest unique flavor identity across all analysis methods
-    - **Most Specialized**: Origins that focus heavily on specific flavor families (high concentration)
-    - **Most Diverse**: Origins expressing the widest range of different flavors
-    - **Minimum Coffees Filter**: Ensures statistical reliability by requiring sufficient sample sizes
-    
-    Rankings help identify origins that excel in different ways - some are distinctive, others are diverse, some are highly specialized.
+    - **Most Distinctive Overall**: Score = number of flavors confirmed by multiple analysis methods. Higher = more uniquely identifiable flavor identity.
+    - **Most Specialized**: Score = concentration index (0-1). Higher values mean the origin focuses on a narrow set of specific flavors rather than a broad mix.
+    - **Most Diverse**: Score = Shannon entropy-based diversity. Higher values mean the origin produces a wider variety of flavor profiles.
+    - **Best Value / Highest Priced**: Ranked by median price per lb (minimum 5 coffees).
+    - **Fastest Moving / Longest Lasting**: Ranked by median listing lifespan in days (expired coffees only, minimum 5).
     """)
-    
-    col1, col2, col3 = st.columns(3)
-    
+
+    col1, col2 = st.columns(2)
+
     with col1:
         ranking_category = st.selectbox(
             "Ranking Category:",
-            ["Most Distinctive Overall", "Most Specialized", "Most Diverse", "Highest Volume"]
+            [
+                "Most Distinctive Overall",
+                "Most Specialized",
+                "Most Diverse",
+                "Highest Volume",
+                "Best Value (Lowest Price)",
+                "Highest Priced",
+                "Fastest Moving (Shortest Lifespan)",
+                "Longest Lasting",
+            ],
         )
-    
+
     with col2:
-        taxonomy_level = st.selectbox("Taxonomy Level:", ["All", "Family", "Genus", "Species"])
-    
-    with col3:
         min_coffees = st.slider("Minimum Coffees:", 1, 100, 10)
-    
-    # Generate and display rankings
-    rankings_data = generate_rankings(ranking_category, taxonomy_level, min_coffees)
-    
+
+    rankings_data = generate_rankings(ranking_category, "All", min_coffees)
+
     if not rankings_data.empty:
         display_rankings(rankings_data, ranking_category)
     else:
@@ -392,6 +469,42 @@ def generate_cache_with_progress():
 
 # Helper functions
 
+
+def _generate_fallback_findings(overview_data: Dict, basic_stats: Dict) -> List[str]:
+    """Generate summary bullet points from available data when key_findings is empty"""
+    findings = []
+
+    total = basic_stats.get('total_coffees', 0)
+    countries = basic_stats.get('countries_analyzed', 0)
+    if total:
+        findings.append(
+            f"**{total} coffees** analyzed across **{countries} countries**."
+        )
+
+    geo = overview_data.get('geographic_data', [])
+    if geo:
+        sorted_geo = sorted(geo, key=lambda x: x.get('total_coffees', 0), reverse=True)
+        top_country = sorted_geo[0]
+        findings.append(
+            f"**{top_country['country']}** has the most coffees ({top_country['total_coffees']}) "
+            f"with {top_country.get('flavor_families', '?')} flavor families represented."
+        )
+
+    top_units = overview_data.get('top_units', [])
+    if top_units:
+        top = top_units[0]
+        name = top.get('unit') or top.get('entity_name', '?')
+        findings.append(
+            f"**{name}** is the most distinctive origin in the dataset."
+        )
+
+    parse_rate = basic_stats.get('flavor_parse_rate', 0)
+    if parse_rate:
+        findings.append(
+            f"**{parse_rate:.0%}** of coffees have parseable flavor notes for analysis."
+        )
+
+    return findings
 
 
 def extract_basic_stats(all_results: Dict[str, Any]) -> Dict[str, Any]:
@@ -468,26 +581,44 @@ def get_most_distinctive_regions_for_flavor(target_flavor: str, taxonomy_level: 
 
 
 def get_cooccurring_flavors_for_flavor(target_flavor: str, taxonomy_level: str) -> List[Dict]:
-    """Get flavors that commonly co-occur with the target flavor"""
+    """Get flavors that commonly co-occur with the target flavor using cached co-occurrence data"""
     try:
-        # This would require analyzing the raw coffee data to find co-occurrences
-        # For now, return a placeholder structure
-        # In a full implementation, we'd analyze the raw coffee data to find which flavors
-        # appear together in the same coffees
-        
-        # Placeholder co-occurrence data
-        cooccurrences = [
-            {"flavor": "Sweet", "cooccurrence_rate": 0.45},
-            {"flavor": "Fruity", "cooccurrence_rate": 0.32},
-            {"flavor": "Floral", "cooccurrence_rate": 0.28},
-            {"flavor": "Nutty/Cocoa", "cooccurrence_rate": 0.25}
-        ]
-        
-        # Filter out the target flavor itself
-        cooccurrences = [c for c in cooccurrences if c['flavor'] != target_flavor]
-        
-        return cooccurrences
-        
+        cooccurrence_data = load_cooccurrence_data()
+        if not cooccurrence_data:
+            return []
+
+        # Map taxonomy level to cache key
+        level_key = f'{taxonomy_level}_level'
+        level_data = cooccurrence_data.get(level_key, {})
+        top_pairs = level_data.get('top_pairs_by_count', [])
+
+        if not top_pairs:
+            return []
+
+        # Find pairs involving the target flavor
+        results = []
+        for pair in top_pairs:
+            f1 = pair.get('flavor_1', '')
+            f2 = pair.get('flavor_2', '')
+            total = pair.get('total_coffees', 1)
+
+            if f1 == target_flavor:
+                results.append({
+                    'flavor': f2,
+                    'cooccurrence_count': pair.get('cooccurrence_count', 0),
+                    'cooccurrence_rate': pair.get('cooccurrence_count', 0) / total if total > 0 else 0,
+                })
+            elif f2 == target_flavor:
+                results.append({
+                    'flavor': f1,
+                    'cooccurrence_count': pair.get('cooccurrence_count', 0),
+                    'cooccurrence_rate': pair.get('cooccurrence_count', 0) / total if total > 0 else 0,
+                })
+
+        # Sort by co-occurrence rate
+        results.sort(key=lambda x: x['cooccurrence_rate'], reverse=True)
+        return results[:10]
+
     except Exception as e:
         st.error(f"Error loading co-occurring flavors: {e}")
         return []
@@ -526,11 +657,23 @@ def get_statistical_results_for_flavor(target_flavor: str, taxonomy_level: str) 
 def display_unit_profile(profile: Dict[str, Any]):
     """Display comprehensive unit profile"""
     st.subheader(f"Analysis for {profile['unit_name']}")
-    
+
+    # Flavor Signature — quick summary of most distinctive flavors
+    tfidf_findings = profile.get('tfidf_findings', {})
+    family_findings = tfidf_findings.get('family', {})
+    top_family_flavors = family_findings.get('top_flavors', [])
+    if top_family_flavors:
+        sig_flavors = [f['flavor'] for f in top_family_flavors[:5]]
+        st.markdown(
+            f"**Flavor Signature:** {', '.join(sig_flavors)}  \n"
+            f"*These are the flavors that most distinguish {profile['unit_name']} from other origins, "
+            f"ranked by uniqueness score (TF-IDF).*"
+        )
+
     # Overview metrics
     overview = profile.get('overview', {})
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         st.metric("Total Coffees", overview.get('total_coffees', 'N/A'))
     with col2:
@@ -539,7 +682,7 @@ def display_unit_profile(profile: Dict[str, Any]):
     with col3:
         flavor_parse_rate = overview.get('flavor_parse_rate', 0)
         st.metric("Flavor Parse Rate", f"{flavor_parse_rate:.1%}" if flavor_parse_rate else 'N/A')
-    
+
     # Additional overview info
     if overview.get('unique_sellers') or overview.get('unique_subregions'):
         col1, col2 = st.columns(2)
@@ -575,7 +718,12 @@ def display_unit_profile(profile: Dict[str, Any]):
     tfidf_findings = profile.get('tfidf_findings', {})
     if any(tfidf_findings.values()):
         st.subheader("🎯 Distinctiveness Analysis (TF-IDF)")
-        
+        st.caption(
+            "TF-IDF (\"uniqueness score\") measures how distinctive a flavor is to this origin. "
+            "Higher scores mean the flavor is both common here AND rare elsewhere — "
+            "the combination that makes a flavor truly characteristic of a place."
+        )
+
         for level in ['family', 'genus', 'species']:
             level_data = tfidf_findings.get(level, {})
             top_flavors = level_data.get('top_flavors', [])
@@ -583,29 +731,41 @@ def display_unit_profile(profile: Dict[str, Any]):
                 with st.expander(f"{level.title()} Level Distinctiveness ({len(top_flavors)} top flavors)"):
                     df = pd.DataFrame(top_flavors)
                     if not df.empty:
-                        st.dataframe(df[['flavor', 'tfidf_score']].head(10))
+                        display = df[['flavor', 'tfidf_score']].head(10).copy()
+                        display = display.rename(columns={
+                            'flavor': 'Flavor',
+                            'tfidf_score': 'Uniqueness Score',
+                        })
+                        st.dataframe(display, hide_index=True)
     
     # Consensus findings
     consensus_findings = profile.get('consensus_findings', {})
     strong_consensus = consensus_findings.get('strong', [])
     moderate_consensus = consensus_findings.get('moderate', [])
-    
+
     if strong_consensus or moderate_consensus:
         st.subheader("🤝 Cross-Method Consensus")
-        
+        st.caption(
+            "Three independent methods are used to identify distinctive flavors: "
+            "**(1) Statistical testing** (are flavors significantly more common here?), "
+            "**(2) TF-IDF uniqueness** (how distinctive is this flavor to this origin?), and "
+            "**(3) Hierarchical cascade** (does the pattern hold across family → genus → species levels?). "
+            "When multiple methods agree, we have higher confidence the finding is real."
+        )
+
         if strong_consensus:
-            st.write("**Strong Consensus (All Methods):**")
+            st.write("**Strong Consensus (all 3 methods agree):**")
             for finding in strong_consensus[:5]:
                 flavor = finding.get('flavor', 'Unknown')
                 methods = finding.get('methods', [])
-                st.write(f"• {flavor} (verified by: {', '.join(methods)})")
-        
+                st.write(f"- {flavor} (verified by: {', '.join(methods)})")
+
         if moderate_consensus:
-            st.write("**Moderate Consensus (2/3 Methods):**")
+            st.write("**Moderate Consensus (2 of 3 methods agree):**")
             for finding in moderate_consensus[:5]:
                 flavor = finding.get('flavor', 'Unknown')
                 methods = finding.get('methods', [])
-                st.write(f"• {flavor} (verified by: {', '.join(methods)})")
+                st.write(f"- {flavor} (verified by: {', '.join(methods)})")
     
     # Recommendations
     recommendations = profile.get('recommendations', [])
@@ -806,69 +966,112 @@ def display_comparison(entities: List[str], entity_type: str):
 def generate_rankings(category: str, level: str, min_coffees: int) -> pd.DataFrame:
     """Generate rankings based on selected criteria"""
     rankings_data = load_rankings_data()
-    
-    if category == "Most Distinctive Overall":
-        rankings = rankings_data.get('most_distinctive', [])
-    elif category == "Most Specialized":
-        rankings = rankings_data.get('most_specialized', [])
-    elif category == "Most Diverse":
-        rankings = rankings_data.get('most_diverse', [])
-    else:
-        rankings = []
-    
+
+    category_map = {
+        "Most Distinctive Overall": 'most_distinctive',
+        "Most Specialized": 'most_specialized',
+        "Most Diverse": 'most_diverse',
+        "Best Value (Lowest Price)": 'best_value',
+        "Highest Priced": 'highest_priced',
+        "Fastest Moving (Shortest Lifespan)": 'fastest_moving',
+        "Longest Lasting": 'longest_lasting',
+    }
+
+    key = category_map.get(category)
+    rankings = rankings_data.get(key, []) if key else []
+
     if not rankings:
         return pd.DataFrame()
-    
+
     rankings_df = pd.DataFrame(rankings)
-    
-    # Filter by minimum coffees if column exists
-    if 'total_coffees' in rankings_df.columns:
-        rankings_df = rankings_df[rankings_df['total_coffees'] >= min_coffees]
-    
-    # Sort by score if column exists
+
+    # Normalize coffee count column name
+    coffee_col = 'total_coffees' if 'total_coffees' in rankings_df.columns else 'coffee_count'
+    if coffee_col in rankings_df.columns:
+        rankings_df = rankings_df[rankings_df[coffee_col] >= min_coffees]
+
+    # Sort: price/lifespan categories ascending, others descending
+    ascending_categories = {
+        "Best Value (Lowest Price)", "Fastest Moving (Shortest Lifespan)"
+    }
+    ascending = category in ascending_categories
+
     if 'score' in rankings_df.columns:
-        rankings_df = rankings_df.sort_values('score', ascending=False)
-    
+        rankings_df = rankings_df.sort_values('score', ascending=ascending)
+
     return rankings_df
 
 
 def display_rankings(rankings_df: pd.DataFrame, category: str):
     """Display rankings with medals and formatting"""
     st.subheader(f"Rankings: {category}")
-    
+
     if rankings_df.empty:
         st.info("No data available for rankings")
         return
-    
-    # Create ranking column with consistent string type from the start
-    rankings_display = rankings_df.copy().reset_index(drop=True)
-    
-    # Build rank column as strings from the beginning to avoid mixed dtype issues
+
+    rankings_display = rankings_df.head(25).copy().reset_index(drop=True)
+
+    # Rank column with medals
     rank_list = []
     for i in range(len(rankings_display)):
         if i == 0:
-            rank_list.append("🥇 1")
+            rank_list.append("1")
         elif i == 1:
-            rank_list.append("🥈 2")
+            rank_list.append("2")
         elif i == 2:
-            rank_list.append("🥉 3")
+            rank_list.append("3")
         else:
             rank_list.append(str(i + 1))
-    
-    # Assign the complete string series at once
-    rankings_display['Rank'] = rank_list
-    
-    # Configure columns for proper display
+    rankings_display.insert(0, 'Rank', rank_list)
+
+    # Rename common columns for display
+    rename_map = {
+        'entity_name': 'Name',
+        'unit': 'Name',
+        'unit_type': 'Type',
+        'type': 'Type',
+        'total_coffees': 'Coffees',
+        'coffee_count': 'Coffees',
+    }
+    for old, new in rename_map.items():
+        if old in rankings_display.columns:
+            rankings_display = rankings_display.rename(columns={old: new})
+
+    # Format top_flavors for display if present
+    if 'top_flavors' in rankings_display.columns:
+        rankings_display['Top Distinctive Flavors'] = rankings_display['top_flavors'].apply(
+            lambda x: ', '.join(f for f in x if f) if isinstance(x, list) and x else ''
+        )
+        rankings_display = rankings_display.drop(columns=['top_flavors'])
+
+    # Category-specific formatting
     column_config = {}
-    if 'score' in rankings_display.columns:
-        column_config["score"] = st.column_config.ProgressColumn("Score", min_value=0, max_value=1)
-    if 'Score' in rankings_display.columns:
-        column_config["Score"] = st.column_config.ProgressColumn("Score", min_value=0, max_value=1)
-    
+    price_cats = {"Best Value (Lowest Price)", "Highest Priced"}
+    lifespan_cats = {"Fastest Moving (Shortest Lifespan)", "Longest Lasting"}
+
+    if category in price_cats:
+        if 'score' in rankings_display.columns:
+            rankings_display = rankings_display.rename(columns={
+                'score': 'Median Price ($/lb)',
+                'mean_price': 'Mean Price ($/lb)',
+            })
+    elif category in lifespan_cats:
+        if 'score' in rankings_display.columns:
+            rankings_display = rankings_display.rename(columns={
+                'score': 'Median Lifespan (days)',
+                'mean_lifespan': 'Mean Lifespan (days)',
+            })
+    else:
+        if 'score' in rankings_display.columns:
+            column_config["score"] = st.column_config.ProgressColumn(
+                "Score", min_value=0, max_value=float(rankings_display['score'].max() or 1)
+            )
+
     st.dataframe(
         rankings_display,
         column_config=column_config,
-        hide_index=True
+        hide_index=True,
     )
 
 

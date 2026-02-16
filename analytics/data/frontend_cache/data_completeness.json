@@ -1,0 +1,34 @@
+{
+  "has_data": true,
+  "total_coffees": 2208,
+  "fields": {
+    "country": {
+      "count": 2138,
+      "rate": 0.9682971014492754
+    },
+    "region": {
+      "count": 2138,
+      "rate": 0.9682971014492754
+    },
+    "process_type": {
+      "count": 2155,
+      "rate": 0.9759963768115942
+    },
+    "varietal": {
+      "count": 2036,
+      "rate": 0.9221014492753623
+    },
+    "price": {
+      "count": 2046,
+      "rate": 0.9266304347826086
+    },
+    "flavor": {
+      "count": 2175,
+      "rate": 0.9850543478260869
+    },
+    "dates": {
+      "count": 2208,
+      "rate": 1.0
+    }
+  }
+}

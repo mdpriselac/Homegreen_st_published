@@ -17,22 +17,26 @@
       "Dried Fruit",
       "Other Fruit"
     ],
-    "Green/Vegetative": [
-      "Beany",
-      "Fresh"
-    ],
-    "Nutty/Cocoa": [
-      "Cocoa",
-      "Nutty"
-    ],
-    "Floral": [
-      "Black Tea",
-      "Floral"
+    "Sour/Fermented": [
+      "Alcohol/Fermented",
+      "Sour"
     ],
     "Sweet": [
       "Brown Sugar",
       "Overall Sweet",
       "Vanilla"
+    ],
+    "Floral": [
+      "Black Tea",
+      "Floral"
+    ],
+    "Nutty/Cocoa": [
+      "Cocoa",
+      "Nutty"
+    ],
+    "Green/Vegetative": [
+      "Beany",
+      "Fresh"
     ],
     "Spices": [
       "Brown Spice",
@@ -44,10 +48,6 @@
       "Cereal",
       "Pipe Tobacco",
       "Tobacco"
-    ],
-    "Sour/Fermented": [
-      "Alcohol/Fermented",
-      "Sour"
     ],
     "Other": [
       "Chemical",
@@ -62,6 +62,34 @@
       "Lime",
       "Orange"
     ],
+    "Sour": [
+      "Acetic Acid",
+      "Butyric Acid",
+      "Citric Acid",
+      "Malic Acid",
+      "Sour Aromatics"
+    ],
+    "Brown Sugar": [
+      "Caramelized",
+      "Honey",
+      "Maple Syrup",
+      "Molasses"
+    ],
+    "Vanilla": [
+      "Vanilla",
+      "Vanillin"
+    ],
+    "Overall Sweet": [
+      "Overall Sweet",
+      "Sweet Aromatics"
+    ],
+    "Floral": [
+      "Chamomile",
+      "Floral",
+      "Jasmine",
+      "Perfumed",
+      "Rose"
+    ],
     "Other Fruit": [
       "Apple",
       "Banana",
@@ -74,6 +102,11 @@
       "Pomegranate",
       "Tropical"
     ],
+    "Cocoa": [
+      "Cocoa",
+      "Dark Chocolate",
+      "Milk Chocolate"
+    ],
     "Fresh": [
       "Dark Green",
       "Green/Vegetative",
@@ -82,18 +115,21 @@
       "Raw",
       "Vegetative"
     ],
-    "Nutty": [
-      "Almond",
-      "Generic Nutty",
-      "Hazelnut",
-      "Peanuts"
+    "Brown Spice": [
+      "Anise",
+      "Brown Spice",
+      "Cinnamon",
+      "Clove",
+      "Nutmeg"
     ],
-    "Floral": [
-      "Chamomile",
-      "Floral",
-      "Jasmine",
-      "Perfumed",
-      "Rose"
+    "Pepper": [
+      "Pepper"
+    ],
+    "Tobacco": [
+      "Tobacco"
+    ],
+    "Pungent": [
+      "Pungent"
     ],
     "Berry": [
       "Blackberry",
@@ -102,51 +138,16 @@
       "Raspberry",
       "Strawberry"
     ],
-    "Overall Sweet": [
-      "Overall Sweet",
-      "Sweet Aromatics"
+    "Dried Fruit": [
+      "Fig",
+      "Prune",
+      "Raisin"
     ],
-    "Brown Spice": [
-      "Anise",
-      "Brown Spice",
-      "Cinnamon",
-      "Clove",
-      "Nutmeg"
-    ],
-    "Cocoa": [
-      "Cocoa",
-      "Dark Chocolate",
-      "Milk Chocolate"
-    ],
-    "Brown Sugar": [
-      "Caramelized",
-      "Honey",
-      "Maple Syrup",
-      "Molasses"
-    ],
-    "Vanilla": [
-      "Vanilla",
-      "Vanillin"
-    ],
-    "Tobacco": [
-      "Tobacco"
-    ],
-    "Burnt": [
-      "Acrid",
-      "Ashy",
-      "Burnt",
-      "Smoky"
-    ],
-    "Pipe Tobacco": [
-      "Pipe Tobacco"
-    ],
-    "Sour": [
-      "Acetic Acid",
-      "Butyric Acid",
-      "Citric Acid",
-      "Isovaleric Acid",
-      "Malic Acid",
-      "Sour Aromatics"
+    "Nutty": [
+      "Almond",
+      "Generic Nutty",
+      "Hazelnut",
+      "Peanuts"
     ],
     "Papery/Musty": [
       "Animalic",
@@ -159,21 +160,23 @@
       "Grain",
       "Malt"
     ],
-    "Alcohol/Fermented": [
-      "Fermented",
-      "Whiskey",
-      "Winey"
-    ],
-    "Pungent": [
-      "Pungent"
-    ],
-    "Dried Fruit": [
-      "Fig",
-      "Prune",
-      "Raisin"
+    "Burnt": [
+      "Acrid",
+      "Ashy",
+      "Burnt",
+      "Smoky"
     ],
     "Black Tea": [
       "Black Tea"
+    ],
+    "Alcohol/Fermented": [
+      "Fermented",
+      "Overripe",
+      "Whiskey",
+      "Winey"
+    ],
+    "Pipe Tobacco": [
+      "Pipe Tobacco"
     ],
     "Chemical": [
       "Bitter",
@@ -181,9 +184,6 @@
       "Petroleum",
       "Rubber",
       "Salty"
-    ],
-    "Pepper": [
-      "Pepper"
     ],
     "Beany": [
       "Beany"
@@ -256,7 +256,6 @@
     "Hazelnut",
     "Herb-like",
     "Honey",
-    "Isovaleric Acid",
     "Jasmine",
     "Lemon",
     "Lime",
@@ -271,6 +270,7 @@
     "Nutmeg",
     "Orange",
     "Overall Sweet",
+    "Overripe",
     "Papery",
     "Peach",
     "Peanuts",

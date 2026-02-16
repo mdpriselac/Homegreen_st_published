@@ -68,6 +68,36 @@ class CachedDataLoader:
         return sorted(units)
     
     @st.cache_data(ttl=3600)
+    def load_turnover_data(_self) -> Dict[str, Any]:
+        """Load turnover/lifespan analysis data"""
+        return _self._load_component('turnover_data')
+
+    @st.cache_data(ttl=3600)
+    def load_price_analysis_data(_self) -> Dict[str, Any]:
+        """Load price analysis data"""
+        return _self._load_component('price_analysis_data')
+
+    @st.cache_data(ttl=3600)
+    def load_cooccurrence_data(_self) -> Dict[str, Any]:
+        """Load flavor co-occurrence analysis data"""
+        return _self._load_component('cooccurrence_data')
+
+    @st.cache_data(ttl=3600)
+    def load_cross_feature_data(_self) -> Dict[str, Any]:
+        """Load cross-feature analysis data"""
+        return _self._load_component('cross_feature_data')
+
+    @st.cache_data(ttl=3600)
+    def load_interaction_data(_self) -> Dict[str, Any]:
+        """Load interaction analysis data"""
+        return _self._load_component('interaction_data')
+
+    @st.cache_data(ttl=3600)
+    def load_data_completeness(_self) -> Dict[str, Any]:
+        """Load data completeness/coverage rates"""
+        return _self._load_component('data_completeness')
+
+    @st.cache_data(ttl=3600)
     def get_cache_metadata(_self) -> Dict[str, Any]:
         """Get cache metadata including generation time"""
         return _self._load_component('metadata')
@@ -188,6 +218,36 @@ def load_flavor_hierarchies() -> Dict[str, Any]:
 def load_rankings_data() -> Dict[str, Any]:
     """Load rankings data"""
     return get_cached_data_loader().load_rankings_data()
+
+
+def load_turnover_data() -> Dict[str, Any]:
+    """Load turnover data"""
+    return get_cached_data_loader().load_turnover_data()
+
+
+def load_price_analysis_data() -> Dict[str, Any]:
+    """Load price analysis data"""
+    return get_cached_data_loader().load_price_analysis_data()
+
+
+def load_cooccurrence_data() -> Dict[str, Any]:
+    """Load co-occurrence data"""
+    return get_cached_data_loader().load_cooccurrence_data()
+
+
+def load_cross_feature_data() -> Dict[str, Any]:
+    """Load cross-feature data"""
+    return get_cached_data_loader().load_cross_feature_data()
+
+
+def load_interaction_data() -> Dict[str, Any]:
+    """Load interaction data"""
+    return get_cached_data_loader().load_interaction_data()
+
+
+def load_data_completeness() -> Dict[str, Any]:
+    """Load data completeness"""
+    return get_cached_data_loader().load_data_completeness()
 
 
 def get_cache_status() -> Dict[str, Any]:

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2025-06-28T14:44:48.087523",
+  "generated_at": "2026-02-15T19:21:59.363409",
   "version": "1.0",
   "analysis_components": [
     "data",
@@ -11,7 +11,7 @@
   ],
   "total_units": {
     "countries": 34,
-    "regions": 161,
+    "regions": 177,
     "sellers": 19
   }
 }

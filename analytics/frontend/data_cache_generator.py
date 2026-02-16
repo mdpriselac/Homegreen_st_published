@@ -18,6 +18,11 @@ from collections import defaultdict
 import math
 
 from analytics.processing.integrated_analysis import get_integrated_analysis, IntegratedFlavorAnalyzer
+from analytics.processing.turnover_analysis import SellerTurnoverAnalyzer
+from analytics.processing.price_analysis import PriceAnalyzer
+from analytics.processing.cooccurrence_analysis import FlavorCooccurrenceAnalyzer
+from analytics.processing.cross_feature_analysis import CrossFeatureAnalyzer
+from analytics.processing.interaction_analysis import InteractionAnalyzer
 
 
 # Setup logging
@@ -79,7 +84,13 @@ class FrontendDataCacheGenerator:
             'flavor_hierarchies': self._generate_flavor_hierarchies_cache(),
             'rankings_data': self._generate_rankings_cache(),
             'comparison_matrices': self._generate_comparison_cache(),
-            'export_ready_data': self._generate_export_cache()
+            'export_ready_data': self._generate_export_cache(),
+            'turnover_data': self._generate_turnover_cache(),
+            'price_analysis_data': self._generate_price_analysis_cache(),
+            'cooccurrence_data': self._generate_cooccurrence_cache(),
+            'cross_feature_data': self._generate_cross_feature_cache(),
+            'interaction_data': self._generate_interaction_cache(),
+            'data_completeness': self._generate_completeness_cache(),
         }
         
         # Save to cache files
@@ -377,41 +388,142 @@ class FrontendDataCacheGenerator:
             'all_species': sorted(list(hierarchies['all_species']))
         }
     
+    def _get_top_flavors_for_entity(self, entity_name: str, unit_type: str, n: int = 3) -> List[str]:
+        """Look up top N TF-IDF family-level flavors for an entity"""
+        tfidf_results = self.all_results.get('tfidf', {})
+        unit_type_plurals = {'country': 'countries', 'region': 'regions', 'seller': 'sellers'}
+        plural = unit_type_plurals.get(unit_type, f"{unit_type}s")
+        key = f"family_{plural}_scores"
+        df = tfidf_results.get(key)
+        if df is None or not isinstance(df, pd.DataFrame) or df.empty:
+            return []
+        unit_df = df[df['unit_name'] == entity_name]
+        if unit_df.empty:
+            return []
+        top = unit_df.nlargest(n, 'tfidf_score')
+        return top['flavor'].tolist()
+
     def _generate_rankings_cache(self) -> Dict[str, Any]:
         """Generate rankings data for Rankings tab"""
         logger.info("Generating rankings cache...")
-        
+
         rankings = {}
-        
+
         # Most Distinctive Overall
         if 'summary' in self.all_results and 'top_distinctive_units' in self.all_results['summary']:
             rankings['most_distinctive'] = self.all_results['summary']['top_distinctive_units']
         else:
             rankings['most_distinctive'] = []
-        
+
+        # Enrich most_distinctive with top flavors
+        for entry in rankings['most_distinctive']:
+            name = entry.get('unit') or entry.get('entity_name', '')
+            utype = entry.get('type') or entry.get('unit_type', 'country')
+            entry['top_flavors'] = self._get_top_flavors_for_entity(name, utype)
+
         # Most Specialized (from hierarchical analysis)
         rankings['most_specialized'] = []
         if 'hierarchical' in self.all_results and 'profiles' in self.all_results['hierarchical']:
             for unit_name, profile in self.all_results['hierarchical']['profiles'].items():
+                top_flavors = self._get_top_flavors_for_entity(
+                    unit_name, profile.get('unit_type', 'unknown')
+                )
                 rankings['most_specialized'].append({
                     'entity_name': unit_name,
                     'unit_type': profile.get('unit_type', 'unknown'),
                     'score': profile.get('summary_metrics', {}).get('concentration_index', 0),
-                    'total_coffees': profile.get('total_coffees', 0)
+                    'total_coffees': profile.get('total_coffees', 0),
+                    'top_flavors': top_flavors,
                 })
-        
+
         # Most Diverse (from hierarchical analysis)
         rankings['most_diverse'] = []
         if 'hierarchical' in self.all_results and 'profiles' in self.all_results['hierarchical']:
             for unit_name, profile in self.all_results['hierarchical']['profiles'].items():
+                top_flavors = self._get_top_flavors_for_entity(
+                    unit_name, profile.get('unit_type', 'unknown')
+                )
                 rankings['most_diverse'].append({
                     'entity_name': unit_name,
                     'unit_type': profile.get('unit_type', 'unknown'),
                     'score': profile.get('summary_metrics', {}).get('flavor_diversity', 0),
-                    'total_coffees': profile.get('total_coffees', 0)
+                    'total_coffees': profile.get('total_coffees', 0),
+                    'top_flavors': top_flavors,
                 })
-        
-        return rankings
+
+        # Best Value origins (lowest median price with enough data)
+        rankings['best_value'] = []
+        # Highest priced origins
+        rankings['highest_priced'] = []
+        cross_feature_df = self.all_results['data'].get('cross_feature_df')
+        if cross_feature_df is not None and not cross_feature_df.empty:
+            priced = cross_feature_df[
+                cross_feature_df['avg_price'].notna() &
+                (cross_feature_df['avg_price'] > 0) &
+                cross_feature_df['country'].notna()
+            ]
+            if not priced.empty:
+                country_price = priced.groupby('country')['avg_price'].agg(
+                    ['median', 'mean', 'count']
+                ).reset_index()
+                country_price = country_price[country_price['count'] >= 5]
+                # Best value = lowest median price
+                best_val = country_price.sort_values('median', ascending=True)
+                for _, row in best_val.iterrows():
+                    rankings['best_value'].append({
+                        'entity_name': row['country'],
+                        'unit_type': 'country',
+                        'score': float(row['median']),
+                        'mean_price': float(row['mean']),
+                        'total_coffees': int(row['count']),
+                    })
+                # Highest priced
+                highest = country_price.sort_values('median', ascending=False)
+                for _, row in highest.iterrows():
+                    rankings['highest_priced'].append({
+                        'entity_name': row['country'],
+                        'unit_type': 'country',
+                        'score': float(row['median']),
+                        'mean_price': float(row['mean']),
+                        'total_coffees': int(row['count']),
+                    })
+
+        # Fastest Moving origins (shortest median lifespan for expired coffees)
+        rankings['fastest_moving'] = []
+        rankings['longest_lasting'] = []
+        if cross_feature_df is not None and not cross_feature_df.empty:
+            expired = cross_feature_df[
+                (cross_feature_df['is_active'] == False) &
+                cross_feature_df['lifespan_days'].notna() &
+                cross_feature_df['country'].notna()
+            ]
+            if not expired.empty:
+                country_life = expired.groupby('country')['lifespan_days'].agg(
+                    ['median', 'mean', 'count']
+                ).reset_index()
+                country_life = country_life[country_life['count'] >= 5]
+                # Fastest moving = shortest median lifespan
+                fastest = country_life.sort_values('median', ascending=True)
+                for _, row in fastest.iterrows():
+                    rankings['fastest_moving'].append({
+                        'entity_name': row['country'],
+                        'unit_type': 'country',
+                        'score': float(row['median']),
+                        'mean_lifespan': float(row['mean']),
+                        'total_coffees': int(row['count']),
+                    })
+                # Longest lasting
+                longest = country_life.sort_values('median', ascending=False)
+                for _, row in longest.iterrows():
+                    rankings['longest_lasting'].append({
+                        'entity_name': row['country'],
+                        'unit_type': 'country',
+                        'score': float(row['median']),
+                        'mean_lifespan': float(row['mean']),
+                        'total_coffees': int(row['count']),
+                    })
+
+        return self._sanitize_for_json(rankings)
     
     def _generate_comparison_cache(self) -> Dict[str, Any]:
         """Generate comparison matrices for Compare tab"""
@@ -481,6 +593,137 @@ class FrontendDataCacheGenerator:
         
         return export_data
     
+    def _generate_turnover_cache(self) -> Dict[str, Any]:
+        """Generate turnover/lifespan analysis cache"""
+        logger.info("Generating turnover analysis cache...")
+        try:
+            cross_feature_df = self.all_results['data'].get('cross_feature_df')
+            if cross_feature_df is None or cross_feature_df.empty:
+                logger.warning("No cross-feature data available for turnover analysis")
+                return {'has_data': False}
+
+            analyzer = SellerTurnoverAnalyzer(cross_feature_df)
+            result = analyzer.run_full_analysis()
+            return self._sanitize_for_json(result)
+        except Exception as e:
+            logger.error(f"Failed to generate turnover cache: {e}")
+            return {'has_data': False, 'error': str(e)}
+
+    def _generate_price_analysis_cache(self) -> Dict[str, Any]:
+        """Generate price analysis cache"""
+        logger.info("Generating price analysis cache...")
+        try:
+            cross_feature_df = self.all_results['data'].get('cross_feature_df')
+            if cross_feature_df is None or cross_feature_df.empty:
+                logger.warning("No cross-feature data available for price analysis")
+                return {'has_data': False}
+
+            analyzer = PriceAnalyzer(cross_feature_df)
+            result = analyzer.run_full_analysis()
+            return self._sanitize_for_json(result)
+        except Exception as e:
+            logger.error(f"Failed to generate price analysis cache: {e}")
+            return {'has_data': False, 'error': str(e)}
+
+    def _generate_cooccurrence_cache(self) -> Dict[str, Any]:
+        """Generate flavor co-occurrence analysis cache"""
+        logger.info("Generating co-occurrence analysis cache...")
+        try:
+            cross_feature_df = self.all_results['data'].get('cross_feature_df')
+            if cross_feature_df is None or cross_feature_df.empty:
+                logger.warning("No cross-feature data available for co-occurrence analysis")
+                return {'has_data': False}
+
+            analyzer = FlavorCooccurrenceAnalyzer(cross_feature_df)
+            result = analyzer.run_full_analysis()
+            return self._sanitize_for_json(result)
+        except Exception as e:
+            logger.error(f"Failed to generate co-occurrence cache: {e}")
+            return {'has_data': False, 'error': str(e)}
+
+    def _generate_cross_feature_cache(self) -> Dict[str, Any]:
+        """Generate cross-feature analysis cache"""
+        logger.info("Generating cross-feature analysis cache...")
+        try:
+            cross_feature_df = self.all_results['data'].get('cross_feature_df')
+            if cross_feature_df is None or cross_feature_df.empty:
+                logger.warning("No cross-feature data available for cross-feature analysis")
+                return {'has_data': False}
+
+            analyzer = CrossFeatureAnalyzer(cross_feature_df)
+            result = analyzer.run_full_analysis()
+            return self._sanitize_for_json(result)
+        except Exception as e:
+            logger.error(f"Failed to generate cross-feature cache: {e}")
+            return {'has_data': False, 'error': str(e)}
+
+    def _generate_interaction_cache(self) -> Dict[str, Any]:
+        """Generate multi-way interaction analysis cache"""
+        logger.info("Generating interaction analysis cache...")
+        try:
+            cross_feature_df = self.all_results['data'].get('cross_feature_df')
+            if cross_feature_df is None or cross_feature_df.empty:
+                logger.warning("No cross-feature data available for interaction analysis")
+                return {'has_data': False}
+
+            analyzer = InteractionAnalyzer(cross_feature_df)
+            result = analyzer.run_full_analysis()
+            return self._sanitize_for_json(result)
+        except Exception as e:
+            logger.error(f"Failed to generate interaction cache: {e}")
+            return {'has_data': False, 'error': str(e)}
+
+    def _generate_completeness_cache(self) -> Dict[str, Any]:
+        """Generate data completeness/coverage rates cache"""
+        logger.info("Generating data completeness cache...")
+        try:
+            cross_feature_df = self.all_results['data'].get('cross_feature_df')
+            if cross_feature_df is None or cross_feature_df.empty:
+                return {'has_data': False}
+
+            total = len(cross_feature_df)
+            if total == 0:
+                return {'has_data': False}
+
+            completeness = {
+                'has_data': True,
+                'total_coffees': total,
+                'fields': {
+                    'country': {
+                        'count': int(cross_feature_df['country'].notna().sum()),
+                        'rate': float(cross_feature_df['country'].notna().mean()),
+                    },
+                    'region': {
+                        'count': int(cross_feature_df['region'].notna().sum()),
+                        'rate': float(cross_feature_df['region'].notna().mean()),
+                    },
+                    'process_type': {
+                        'count': int(cross_feature_df['has_process'].sum()),
+                        'rate': float(cross_feature_df['has_process'].mean()),
+                    },
+                    'varietal': {
+                        'count': int(cross_feature_df['has_varietal'].sum()),
+                        'rate': float(cross_feature_df['has_varietal'].mean()),
+                    },
+                    'price': {
+                        'count': int(cross_feature_df['has_price'].sum()),
+                        'rate': float(cross_feature_df['has_price'].mean()),
+                    },
+                    'flavor': {
+                        'count': int(cross_feature_df['has_flavors'].sum()),
+                        'rate': float(cross_feature_df['has_flavors'].mean()),
+                    },
+                    'dates': {
+                        'count': int(cross_feature_df['first_observed'].notna().sum()),
+                        'rate': float(cross_feature_df['first_observed'].notna().mean()),
+                    },
+                },
+            }
+            return completeness
+        except Exception as e:
+            logger.error(f"Failed to generate completeness cache: {e}")
+            return {'has_data': False, 'error': str(e)}
+
     def _extract_dataset_stats(self) -> Dict[str, Any]:
         """Extract basic dataset statistics"""
         stats = {}
