@@ -11,6 +11,9 @@ from typing import Dict, List, Any, Optional
 from scipy import stats
 from collections import defaultdict
 
+from analytics.processing.varietals import expand_varietals
+from analytics.processing.stat_utils import apply_bh, eta_squared_h
+
 
 class PriceAnalyzer:
     """Analyze coffee pricing patterns across features"""
@@ -21,8 +24,8 @@ class PriceAnalyzer:
         self.full_df = cross_feature_df.copy()
         # Work with coffees that have price data
         self.df = self.full_df[
-            self.full_df['avg_price'].notna() &
-            (self.full_df['avg_price'] > 0)
+            self.full_df['price_per_lb'].notna() &
+            (self.full_df['price_per_lb'] > 0)
         ].copy()
 
     def compute_price_overview(self) -> Dict[str, Any]:
@@ -30,7 +33,7 @@ class PriceAnalyzer:
         if self.df.empty:
             return {'has_data': False}
 
-        prices = self.df['avg_price']
+        prices = self.df['price_per_lb']
         return {
             'has_data': True,
             'total_with_price': len(self.df),
@@ -44,7 +47,25 @@ class PriceAnalyzer:
             'q25': float(prices.quantile(0.25)),
             'q75': float(prices.quantile(0.75)),
             'histogram': self._compute_histogram(prices),
+            **self._window_info(),
         }
+
+    def _window_info(self) -> Dict[str, Any]:
+        """Time window covered by the priced coffees, and active/expired mix"""
+        info: Dict[str, Any] = {}
+        if 'first_observed' in self.df.columns:
+            first = pd.to_datetime(self.df['first_observed'], errors='coerce').min()
+            if pd.notna(first):
+                info['window_start'] = first.strftime('%Y-%m-%d')
+        if 'last_observed' in self.df.columns:
+            last = pd.to_datetime(self.df['last_observed'], errors='coerce').max()
+            if pd.notna(last):
+                info['window_end'] = last.strftime('%Y-%m-%d')
+        if 'is_active' in self.df.columns:
+            active = self.df['is_active'].fillna(False).astype(bool)
+            info['n_active'] = int(active.sum())
+            info['n_expired'] = int((~active).sum())
+        return info
 
     def price_by_category(self, category_col: str, label_col: str = None,
                           min_group_size: int = None) -> Dict[str, Any]:
@@ -68,12 +89,21 @@ class PriceAnalyzer:
             if pd.isna(name) or not name:
                 continue
 
-            prices = group['avg_price'].dropna()
+            prices = group['price_per_lb'].dropna()
             if len(prices) < min_group_size:
                 continue
 
+            rest = self.df.loc[~self.df.index.isin(group.index), 'price_per_lb'].dropna()
+            p_group = None
+            if len(rest) >= min_group_size:
+                try:
+                    p_group = float(stats.mannwhitneyu(prices, rest, alternative='two-sided')[1])
+                except Exception:
+                    p_group = None
+
             group_stats.append({
                 'name': str(name),
+                'p_value': p_group,   # Mann-Whitney: group vs all other coffees
                 'count': len(prices),
                 'mean': float(prices.mean()),
                 'median': float(prices.median()),
@@ -87,6 +117,8 @@ class PriceAnalyzer:
             kw_groups.append(prices.values)
             kw_names.append(str(name))
 
+        # BH across the groups of this category (raw p kept in p_value)
+        apply_bh(group_stats)
         group_stats.sort(key=lambda x: x['median'], reverse=True)
 
         # Kruskal-Wallis test
@@ -108,26 +140,16 @@ class PriceAnalyzer:
         return self.price_by_category('process_type', 'Process Method')
 
     def price_by_varietal(self) -> Dict[str, Any]:
-        """Price distributions by varietal (expanding multi-varietal coffees)"""
+        """Price distributions by varietal (single-varietal coffees only)"""
         if self.df.empty:
             return {'has_data': False, 'groups': []}
 
-        # Expand varietals: each varietal gets its own row
-        expanded_rows = []
-        for _, row in self.df.iterrows():
-            varietals = row.get('varietals', [])
-            if not varietals or not isinstance(varietals, list):
-                continue
-            for v in varietals:
-                if v and str(v).strip():
-                    new_row = row.copy()
-                    new_row['single_varietal'] = str(v).strip()
-                    expanded_rows.append(new_row)
-
-        if not expanded_rows:
+        # price_by_category runs a Kruskal-Wallis test, so use single-varietal
+        # coffees only (independent rows, no duplicate per-varietal copies).
+        expanded_df = expand_varietals(self.df, 'single')
+        if expanded_df.empty:
             return {'has_data': False, 'groups': []}
 
-        expanded_df = pd.DataFrame(expanded_rows)
         # Temporarily replace df for price_by_category
         original_df = self.df
         self.df = expanded_df
@@ -176,8 +198,8 @@ class PriceAnalyzer:
             if len(has_flavor) < self.MIN_GROUP_SIZE or len(lacks_flavor) < self.MIN_GROUP_SIZE:
                 continue
 
-            prices_with = has_flavor['avg_price']
-            prices_without = lacks_flavor['avg_price']
+            prices_with = has_flavor['price_per_lb']
+            prices_without = lacks_flavor['price_per_lb']
 
             # Mann-Whitney U test
             try:
@@ -202,6 +224,9 @@ class PriceAnalyzer:
                 'is_significant': is_significant,
             })
 
+        # BH across all flavors tested at this taxonomy level; significance = q < 0.05
+        apply_bh(flavor_stats)
+
         # Sort by price difference
         flavor_stats.sort(key=lambda x: x['price_difference'], reverse=True)
 
@@ -211,59 +236,85 @@ class PriceAnalyzer:
             'taxonomy_level': taxonomy_level,
         }
 
+    def _group_vs_rest(self, category_col: str, feature: str, kind: str,
+                       overall_median: float) -> List[Dict[str, Any]]:
+        """Per-group premium (group median - overall median) with a Mann-Whitney
+        test of the group vs all other coffees, BH-corrected across the groups."""
+        rows = []
+        for name, group in self.df.groupby(category_col):
+            if pd.isna(name) or not name:
+                continue
+            prices = group['price_per_lb'].dropna()
+            rest = self.df.loc[~self.df.index.isin(group.index), 'price_per_lb'].dropna()
+            if len(prices) < self.MIN_GROUP_SIZE or len(rest) < self.MIN_GROUP_SIZE:
+                continue
+            try:
+                p_value = float(stats.mannwhitneyu(prices, rest, alternative='two-sided')[1])
+            except Exception:
+                continue
+            rows.append({
+                'feature': feature,
+                'value': str(name),
+                'median_price': float(prices.median()),
+                'price_premium': float(prices.median() - overall_median),
+                'count': int(len(prices)),
+                'p_value': p_value,
+                'type': kind,
+            })
+        apply_bh(rows)
+        return rows
+
     def find_premium_indicators(self) -> List[Dict[str, Any]]:
         """
         Rank features most associated with higher prices.
-        Combines results from all categorical analyses.
+
+        premium = group median - overall median. Only positive, statistically
+        significant premiums are returned, sorted by premium descending.
+        Significance everywhere is Benjamini-Hochberg adjusted q < 0.05, applied
+        within each feature's candidate set (countries, processes, flavor
+        families). Country/process: group-vs-rest Mann-Whitney. Flavor: the
+        with/without Mann-Whitney p-value from price_by_flavor.
         """
-        indicators = []
+        if self.df.empty:
+            return []
+        overall_median = float(self.df['price_per_lb'].median())
+        candidates = []
+        candidates += self._group_vs_rest('country', 'Country', 'origin', overall_median)
+        candidates += self._group_vs_rest('process_type', 'Process', 'process', overall_median)
 
-        # Country effects
-        country_result = self.price_by_country()
-        if country_result['has_data']:
-            for group in country_result['groups'][:5]:
-                indicators.append({
-                    'feature': 'Country',
-                    'value': group['name'],
-                    'median_price': group['median'],
-                    'count': group['count'],
-                    'type': 'origin',
-                })
-
-        # Process effects
-        process_result = self.price_by_process()
-        if process_result['has_data']:
-            for group in process_result['groups'][:5]:
-                indicators.append({
-                    'feature': 'Process',
-                    'value': group['name'],
-                    'median_price': group['median'],
-                    'count': group['count'],
-                    'type': 'process',
-                })
-
-        # Flavor effects
         flavor_result = self.price_by_flavor('family')
         if flavor_result['has_data']:
-            sig_flavors = [f for f in flavor_result['flavors'] if f['is_significant']]
-            for f in sig_flavors[:5]:
-                indicators.append({
-                    'feature': 'Flavor Family',
-                    'value': f['flavor'],
-                    'median_price': f['median_price_with'],
-                    'count': f['count_with'],
-                    'price_premium': f['price_difference'],
-                    'type': 'flavor',
-                })
+            flavor_rows = [{
+                'feature': 'Flavor Family',
+                'value': f['flavor'],
+                'median_price': f['median_price_with'],
+                'price_premium': f['median_price_with'] - overall_median,
+                'count': f['count_with'],
+                'p_value': f['p_value'],
+                'q_value': f['q_value'],          # BH over all flavor families (price_by_flavor)
+                'is_significant': f['is_significant'],
+                'type': 'flavor',
+            } for f in flavor_result['flavors'] if f.get('p_value') is not None]
+            candidates += flavor_rows
 
-        # Sort by median price descending
-        indicators.sort(key=lambda x: x['median_price'], reverse=True)
+        indicators = [c for c in candidates
+                      if c.get('is_significant') and c['price_premium'] > 0]
+        indicators.sort(key=lambda x: x['price_premium'], reverse=True)
         return indicators
 
     def _compute_histogram(self, series: pd.Series, bins: int = 20) -> Dict[str, List]:
         """Compute histogram data for frontend rendering"""
-        counts, bin_edges = np.histogram(series.dropna(), bins=bins)
+        """Histogram with log-spaced bins (prices are right-skewed)"""
+        values = series.dropna()
+        values = values[values > 0]
+        if values.empty:
+            return {'counts': [], 'bin_edges': [], 'bin_labels': [], 'log_bins': True}
+        lo, hi = float(values.min()), float(values.max())
+        if lo == hi:
+            hi = lo * 1.01
+        counts, bin_edges = np.histogram(values, bins=np.geomspace(lo, hi, bins + 1))
         return {
+            'log_bins': True,
             'counts': counts.tolist(),
             'bin_edges': bin_edges.tolist(),
             'bin_labels': [
@@ -282,15 +333,17 @@ class PriceAnalyzer:
             h_stat, p_value = stats.kruskal(*groups)
             n = sum(len(g) for g in groups)
             k = len(groups)
-            epsilon_sq = (h_stat - k + 1) / (n - k) if n > k else 0
+            eta2 = eta_squared_h(h_stat, n, k)
 
             return {
                 'has_data': True,
                 'h_statistic': float(h_stat),
                 'p_value': float(p_value),
-                'is_significant': p_value < 0.05,
+                'is_significant': bool(p_value < 0.05),
                 'n_groups': k,
-                'effect_size': float(epsilon_sq),
+                'effect_size': float(eta2),
+                'eta_squared_h': float(eta2),
+                'effect_size_metric': 'eta2_h',
             }
         except Exception:
             return {'has_data': False}

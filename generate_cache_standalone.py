@@ -30,7 +30,8 @@ def main():
 
     print(f"\nCache generation completed!")
     print(f"  Cache saved to: {generator.cache_dir}")
-    print(f"  Unit profiles: {len(cache_data.get('unit_profiles', {}))}")
+    print(f"  Unit profiles (10+ coffees): {len(cache_data.get('distinctiveness_profiles', {}))}")
+    print(f"  Key findings: {len(cache_data.get('distinctiveness_meta', {}).get('key_findings', []))}")
     print(f"  Flavor families: {len(cache_data.get('flavor_hierarchies', {}).get('families', []))}")
     print(f"  Rankings categories: {len(cache_data.get('rankings_data', {}))}")
 

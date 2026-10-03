@@ -16,11 +16,16 @@ from typing import Dict, List, Any, Optional, Tuple
 from scipy import stats
 from collections import Counter
 
+from analytics.processing.varietals import expand_varietals
+from analytics.processing.stat_utils import apply_bh, permutation_premium_test
+
 
 class InteractionAnalyzer:
     """Analyze multi-way interactions between coffee features"""
 
     MIN_GROUP_SIZE = 10
+    N_PERMUTATIONS = 2000
+    PERMUTATION_SEED = 20240405
 
     def __init__(self, cross_feature_df: pd.DataFrame):
         self.df = cross_feature_df.copy()
@@ -39,6 +44,8 @@ class InteractionAnalyzer:
     ) -> Dict[str, Any]:
         """
         Compute (Feature_A × Feature_B) → Flavor interaction effects.
+        Binomial p-values (raw p_value) are BH-adjusted over every combination x
+        flavor tested in this call; is_significant = q < 0.05.
 
         Detects flavors that appear more/less often in a specific combination
         than you'd predict from either feature alone (under independence).
@@ -65,17 +72,19 @@ class InteractionAnalyzer:
         # Compute per-combination flavor profiles and interaction effects
         combination_profiles = {}
         all_effects = []
+        tested = []     # every binomial test run (BH family = this interaction type)
 
         for (val_a, val_b), group in working.groupby([feature_a, feature_b]):
             if len(group) < self.MIN_GROUP_SIZE:
                 continue
 
             combo_key = f"{val_a}|{val_b}"
-            observed_rates = self._compute_group_flavor_rates(group, list_col)
+            observed_counts, group_n = self._compute_group_flavor_counts(group, list_col)
+            observed_rates = {f: c / group_n for f, c in observed_counts.items()} if group_n else {}
 
             # Store combination profile
             flavors_list = [
-                {'flavor': f, 'observed_rate': r, 'count': int(r * len(group))}
+                {'flavor': f, 'observed_rate': r, 'count': int(observed_counts[f])}
                 for f, r in sorted(observed_rates.items(), key=lambda x: -x[1])
             ]
             combination_profiles[combo_key] = {
@@ -103,15 +112,12 @@ class InteractionAnalyzer:
                 ratio = obs / expected if expected > 0 else None
 
                 # Significance test
-                obs_count = int(obs * len(group))
-                is_sig, p_val = self._test_interaction_significance(
-                    obs_count, len(group), expected
+                obs_count = int(observed_counts.get(flavor, 0))   # exact integer count
+                _, p_val = self._test_interaction_significance(
+                    obs_count, group_n, expected
                 )
 
-                if abs(score) < 0.02:
-                    continue  # Skip negligible effects
-
-                all_effects.append({
+                effect = {
                     'feature_a_value': str(val_a),
                     'feature_b_value': str(val_b),
                     'flavor': flavor,
@@ -123,9 +129,14 @@ class InteractionAnalyzer:
                     'interaction_ratio': round(ratio, 3) if ratio is not None else None,
                     'effect_type': 'emergent' if score > 0 else 'suppressed',
                     'sample_size': len(group),
-                    'is_significant': is_sig,
-                    'p_value': round(p_val, 6) if p_val is not None else None,
-                })
+                    'is_significant': False,
+                    'p_value': p_val,
+                }
+                tested.append(effect)
+                if abs(score) >= 0.02:   # skip negligible effects (still in the BH family)
+                    all_effects.append(effect)
+
+        self._finalise_tests(tested)
 
         # Sort and select top effects
         all_effects.sort(key=lambda x: abs(x['interaction_score']), reverse=True)
@@ -175,6 +186,7 @@ class InteractionAnalyzer:
 
         combination_profiles = {}
         all_effects = []
+        tested = []
 
         for (country, process, varietal), group in working.groupby(
             ['country', 'process_type', 'single_varietal']
@@ -183,10 +195,11 @@ class InteractionAnalyzer:
                 continue
 
             combo_key = f"{country}|{process}|{varietal}"
-            observed_rates = self._compute_group_flavor_rates(group, list_col)
+            observed_counts, group_n = self._compute_group_flavor_counts(group, list_col)
+            observed_rates = {f: c / group_n for f, c in observed_counts.items()} if group_n else {}
 
             flavors_list = [
-                {'flavor': f, 'observed_rate': r, 'count': int(r * len(group))}
+                {'flavor': f, 'observed_rate': r, 'count': int(observed_counts[f])}
                 for f, r in sorted(observed_rates.items(), key=lambda x: -x[1])
             ]
             combination_profiles[combo_key] = {
@@ -213,15 +226,13 @@ class InteractionAnalyzer:
                     continue
 
                 score = obs - expected
-                if abs(score) < 0.03:
-                    continue
 
-                obs_count = int(obs * len(group))
-                is_sig, p_val = self._test_interaction_significance(
-                    obs_count, len(group), expected
+                obs_count = int(observed_counts.get(flavor, 0))   # exact integer count
+                _, p_val = self._test_interaction_significance(
+                    obs_count, group_n, expected
                 )
 
-                all_effects.append({
+                effect = {
                     'country': str(country),
                     'process': str(process),
                     'varietal': str(varietal),
@@ -231,9 +242,14 @@ class InteractionAnalyzer:
                     'interaction_score': round(score, 4),
                     'effect_type': 'emergent' if score > 0 else 'suppressed',
                     'sample_size': len(group),
-                    'is_significant': is_sig,
-                    'p_value': round(p_val, 6) if p_val is not None else None,
-                })
+                    'is_significant': False,
+                    'p_value': p_val,
+                }
+                tested.append(effect)
+                if abs(score) >= 0.03:
+                    all_effects.append(effect)
+
+        self._finalise_tests(tested)
 
         all_effects.sort(key=lambda x: abs(x['interaction_score']), reverse=True)
         emergent = [e for e in all_effects if e['effect_type'] == 'emergent']
@@ -267,13 +283,23 @@ class InteractionAnalyzer:
 
         For flavor features (feature name starts with 'flavor_'), treats each
         flavor as a binary variable (has/doesn't have).
+
+        Significance (p_value raw, q_value = Benjamini-Hochberg over all combos of
+        this call, is_significant = q < 0.05) tests the interaction premium itself:
+            premium = median(price | A&B)
+                      - (median(price | A) + median(price | B) - median(price))
+        i.e. how far the combination's median is from the additive expectation.
+        Permutation test (N_PERMUTATIONS = 2000, seeded): B membership is permuted
+        among rows within A and within not-A, which preserves |A|, |B|, |A&B| and
+        the price distribution inside A; p = (1 + #{|premium*| >= |premium|}) / 2001.
+        (The old combo-vs-rest Mann-Whitney did not test this quantity.)
         """
         is_flavor_a = feature_a.startswith('flavor_')
         is_flavor_b = feature_b.startswith('flavor_')
 
         # Prepare working data
         working = self.df[
-            self.df['avg_price'].notna() & (self.df['avg_price'] > 0)
+            self.df['price_per_lb'].notna() & (self.df['price_per_lb'] > 0)
         ].copy()
 
         # Handle varietal expansion
@@ -290,7 +316,7 @@ class InteractionAnalyzer:
         if len(working) < 20:
             return {'has_data': False}
 
-        global_median = float(working['avg_price'].median())
+        global_median = float(working['price_per_lb'].median())
 
         # Compute marginal prices
         marginal_a = self._compute_marginal_prices(working, feature_a, is_flavor_a)
@@ -305,8 +331,9 @@ class InteractionAnalyzer:
 
         # Standard categorical × categorical price interactions
         combinations = []
+        prices_all = working['price_per_lb'].to_numpy(dtype=float)
         for (val_a, val_b), group in working.groupby([feature_a, feature_b]):
-            prices = group['avg_price']
+            prices = group['price_per_lb']
             if len(prices) < self.MIN_GROUP_SIZE:
                 continue
 
@@ -316,20 +343,13 @@ class InteractionAnalyzer:
             expected = price_a + price_b - global_median
             premium = obs_median - expected
 
-            # Significance: Mann-Whitney combo vs rest
-            rest = working[
-                ~((working[feature_a] == val_a) & (working[feature_b] == val_b))
-            ]['avg_price']
-            is_sig, p_val = False, None
-            if len(rest) >= self.MIN_GROUP_SIZE:
-                try:
-                    _, p_val = stats.mannwhitneyu(
-                        prices, rest, alternative='two-sided'
-                    )
-                    is_sig = p_val < 0.05
-                    p_val = float(p_val)
-                except Exception:
-                    pass
+            # Test of the interaction premium itself (not combo-vs-rest)
+            _, p_val = permutation_premium_test(
+                prices_all,
+                (working[feature_a] == val_a).to_numpy(),
+                (working[feature_b] == val_b).to_numpy(),
+                n_perm=self.N_PERMUTATIONS, seed=self.PERMUTATION_SEED,
+            )
 
             combinations.append({
                 'feature_a_value': str(val_a),
@@ -342,9 +362,11 @@ class InteractionAnalyzer:
                 'marginal_a_price': round(price_a, 2),
                 'marginal_b_price': round(price_b, 2),
                 'effect_type': 'premium' if premium > 0 else 'discount',
-                'is_significant': is_sig,
-                'p_value': round(p_val, 6) if p_val is not None else None,
+                'is_significant': False,
+                'p_value': p_val,
             })
+
+        self._finalise_tests(combinations)
 
         combinations.sort(key=lambda x: abs(x['price_premium']), reverse=True)
         premiums = [c for c in combinations if c['effect_type'] == 'premium']
@@ -395,6 +417,7 @@ class InteractionAnalyzer:
             flavors_b = set(working[feature_b].dropna().unique())
 
         combinations = []
+        prices_all = working['price_per_lb'].to_numpy(dtype=float)
         for val_a in flavors_a:
             # Filter for feature_a
             if is_flavor_a:
@@ -414,7 +437,7 @@ class InteractionAnalyzer:
                     mask_b = working[feature_b] == val_b
 
                 group = working[mask_a & mask_b]
-                prices = group['avg_price']
+                prices = group['price_per_lb']
                 if len(prices) < self.MIN_GROUP_SIZE:
                     continue
 
@@ -424,17 +447,10 @@ class InteractionAnalyzer:
                 expected = price_a + price_b - global_median
                 premium = obs_median - expected
 
-                rest = working[~(mask_a & mask_b)]['avg_price']
-                is_sig, p_val = False, None
-                if len(rest) >= self.MIN_GROUP_SIZE:
-                    try:
-                        _, p_val = stats.mannwhitneyu(
-                            prices, rest, alternative='two-sided'
-                        )
-                        is_sig = p_val < 0.05
-                        p_val = float(p_val)
-                    except Exception:
-                        pass
+                _, p_val = permutation_premium_test(
+                    prices_all, mask_a.to_numpy(), mask_b.to_numpy(),
+                    n_perm=self.N_PERMUTATIONS, seed=self.PERMUTATION_SEED,
+                )
 
                 combinations.append({
                     'feature_a_value': str(val_a),
@@ -447,9 +463,11 @@ class InteractionAnalyzer:
                     'marginal_a_price': round(price_a, 2),
                     'marginal_b_price': round(price_b, 2),
                     'effect_type': 'premium' if premium > 0 else 'discount',
-                    'is_significant': is_sig,
-                    'p_value': round(p_val, 6) if p_val is not None else None,
+                    'is_significant': False,
+                    'p_value': p_val,
                 })
+
+        self._finalise_tests(combinations)
 
         combinations.sort(key=lambda x: abs(x['price_premium']), reverse=True)
         premiums = [c for c in combinations if c['effect_type'] == 'premium']
@@ -491,42 +509,19 @@ class InteractionAnalyzer:
         return df.reset_index(drop=True)
 
     def _expand_varietals(self) -> pd.DataFrame:
-        """Expand multi-varietal coffees into one row per varietal."""
-        if self._expanded_df is not None:
-            return self._expanded_df
+        """Single-varietal coffees only (cached).
 
-        rows = []
-        for _, row in self.df.iterrows():
-            varietals = row.get('varietals', [])
-            if not isinstance(varietals, list) or not varietals:
-                continue
-            for v in varietals:
-                if v and str(v).strip():
-                    new_row = row.copy()
-                    new_row['single_varietal'] = str(v).strip()
-                    rows.append(new_row)
-
-        if not rows:
-            self._expanded_df = pd.DataFrame()
-        else:
-            self._expanded_df = pd.DataFrame(rows).reset_index(drop=True)
+        Every interaction result here carries a significance test (binomial /
+        Mann-Whitney), so rows must be independent coffees: multi-varietal
+        coffees are excluded rather than duplicated per varietal.
+        """
+        if self._expanded_df is None:
+            self._expanded_df = expand_varietals(self.df, 'single')
         return self._expanded_df
 
     def _expand_from_df(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Expand varietals from an already-filtered DataFrame."""
-        rows = []
-        for _, row in df.iterrows():
-            varietals = row.get('varietals', [])
-            if not isinstance(varietals, list) or not varietals:
-                continue
-            for v in varietals:
-                if v and str(v).strip():
-                    new_row = row.copy()
-                    new_row['single_varietal'] = str(v).strip()
-                    rows.append(new_row)
-        if not rows:
-            return pd.DataFrame()
-        return pd.DataFrame(rows).reset_index(drop=True)
+        """Single-varietal expansion of an already-filtered DataFrame."""
+        return expand_varietals(df, 'single')
 
     def _compute_global_rates(
         self, df: pd.DataFrame, list_col: str
@@ -564,6 +559,21 @@ class InteractionAnalyzer:
                 result[val] = {f: c / total for f, c in counts.items()}
         return result
 
+    def _compute_group_flavor_counts(
+        self, group: pd.DataFrame, list_col: str
+    ) -> Tuple[Dict[str, int], int]:
+        """Integer flavor counts for a group and the number of coffees counted."""
+        counts = Counter()
+        total = 0
+        for _, row in group.iterrows():
+            flavors = row.get(list_col, [])
+            if isinstance(flavors, list):
+                total += 1
+                for f in set(flavors):
+                    if f:
+                        counts[f] += 1
+        return dict(counts), total
+
     def _compute_group_flavor_rates(
         self, group: pd.DataFrame, list_col: str
     ) -> Dict[str, float]:
@@ -597,14 +607,14 @@ class InteractionAnalyzer:
                 mask = df[feature].apply(
                     lambda x: flavor in x if isinstance(x, list) else False
                 )
-                prices = df.loc[mask, 'avg_price']
+                prices = df.loc[mask, 'price_per_lb']
                 if len(prices) >= self.MIN_GROUP_SIZE:
                     result[flavor] = float(prices.median())
             return result
         else:
             result = {}
             for val, group in df.groupby(feature):
-                prices = group['avg_price']
+                prices = group['price_per_lb']
                 if len(prices) >= self.MIN_GROUP_SIZE:
                     result[val] = float(prices.median())
             return result
@@ -626,6 +636,16 @@ class InteractionAnalyzer:
             return None
         expected = rate_a * rate_b * rate_c / (global_rate ** 2)
         return min(expected, 1.0)
+
+    def _finalise_tests(self, rows: List[Dict[str, Any]]) -> None:
+        """BH-adjust one family of tests (one interaction type) in place:
+        adds q_value, sets is_significant = q < 0.05, then rounds the raw p for display."""
+        apply_bh(rows)
+        for r in rows:
+            if r.get('p_value') is not None:
+                r['p_value'] = round(float(r['p_value']), 6)
+            if r.get('q_value') is not None:
+                r['q_value'] = round(float(r['q_value']), 6)
 
     def _test_interaction_significance(
         self, observed_count: int, total: int, expected_rate: float

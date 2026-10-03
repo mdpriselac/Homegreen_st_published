@@ -11,6 +11,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 from typing import Dict, Any, List
 
+from analytics.frontend.flags import as_bool, significant_mask
+from page_apps.analytics.common import ETA2_NOTE, category_plural, effect_label, fmt_p, fmt_q
+
 
 def render_price_tab():
     """Render the Price Analysis tab"""
@@ -21,13 +24,19 @@ def render_price_tab():
     varietals, and flavor profiles.
 
     **How to interpret:**
-    - **Bar charts** show the median price with error bars (standard deviation) for each group
+    - **Price definition:** price per lb is the *best per-lb price offered* for a coffee
+      (usually the largest bag size), not an average across bag sizes
+    - **Bar charts** show the median price with error bars spanning the interquartile range
+      (25th to 75th percentile) for each group
     - **Kruskal-Wallis H test** checks whether price differences across 3+ groups are statistically significant —
       it's a rank-based test chosen because coffee prices are often skewed with outliers
     - **Mann-Whitney U test** compares exactly two groups (coffees WITH vs WITHOUT a specific flavor) —
       like Kruskal-Wallis but specialized for the two-group case
-    - **P-value** < 0.05 means the difference is statistically significant (unlikely to be due to chance)
-    - **Effect size** tells you how *large* the difference actually is (a significant but tiny effect may not matter in practice)
+    - **q-value** is the p-value adjusted for the number of comparisons made; q < 0.05 means the difference is
+      statistically significant (unlikely to be due to chance)
+    - **Eta-squared (H)** is the effect size of the Kruskal-Wallis test: how *large* the difference actually is
+      (a significant but tiny effect may not matter in practice)
+    - **Varietal** prices use single-varietal coffees only (coffees listing several varietals are left out)
     """)
 
     from analytics.frontend.cached_data_loader import load_price_analysis_data
@@ -87,11 +96,22 @@ def _render_price_overview(data: Dict[str, Any]):
         )])
         fig.update_layout(
             title="Price Distribution ($/lb)",
-            xaxis_title="Price Range",
+            xaxis_title="Price Range ($/lb, log-spaced bins)" if histogram.get('log_bins') else "Price Range",
             yaxis_title="Number of Coffees",
             xaxis_tickangle=45
         )
         st.plotly_chart(fig, use_container_width=True)
+
+        window = ""
+        if data.get('window_start') and data.get('window_end'):
+            window = f" first seen {data['window_start']} through last seen {data['window_end']},"
+        mix = ""
+        if data.get('n_active') is not None and data.get('n_expired') is not None:
+            mix = f" ({data['n_active']:,} active, {data['n_expired']:,} expired)"
+        st.caption(
+            f"Covers coffees{window} including both active and expired listings{mix}. "
+            "Price per lb is the best per-lb price offered (usually the largest bag)."
+        )
 
         q25 = data.get('q25', 0)
         q75 = data.get('q75', 0)
@@ -129,15 +149,24 @@ def _render_price_by_category(data: Dict[str, Any], category_label: str):
 
     group_df = pd.DataFrame(groups)
 
-    # Box plot style visualization using bar + error bars
+    # Bar of the median with interquartile-range (q25-q75) error bars.
+    # Older caches have no q25/q75 columns: show bars without error bars.
+    sorted_df = group_df.sort_values('median', ascending=False)
+    iqr_kwargs = {}
+    if 'q25' in sorted_df.columns and 'q75' in sorted_df.columns:
+        sorted_df = sorted_df.assign(
+            _err_up=(sorted_df['q75'] - sorted_df['median']).clip(lower=0),
+            _err_down=(sorted_df['median'] - sorted_df['q25']).clip(lower=0),
+        )
+        iqr_kwargs = {'error_y': '_err_up', 'error_y_minus': '_err_down'}
     fig = px.bar(
-        group_df.sort_values('median', ascending=False),
+        sorted_df,
         x='name',
         y='median',
-        error_y=group_df.sort_values('median', ascending=False)['std'],
+        **iqr_kwargs,
         title=f"Median Price by {category_label}",
         labels={'median': 'Median Price ($/lb)', 'name': category_label},
-        text=group_df.sort_values('median', ascending=False)['count'].apply(lambda x: f'n={x}'),
+        text=sorted_df['count'].apply(lambda x: f'n={x}'),
         color='median',
         color_continuous_scale='Viridis',
     )
@@ -153,44 +182,44 @@ def _render_price_by_category(data: Dict[str, Any], category_label: str):
             'median': 'Median ($/lb)',
             'min': 'Min ($/lb)',
             'max': 'Max ($/lb)',
+            'q_value': 'q-value',
         })
+        if 'q-value' in display_df.columns:
+            display_df['q-value'] = display_df['q-value'].apply(fmt_q)
         for col in ['Mean ($/lb)', 'Median ($/lb)', 'Min ($/lb)', 'Max ($/lb)']:
             if col in display_df.columns:
                 display_df[col] = display_df[col].apply(lambda x: f"${x:.2f}")
-        st.dataframe(display_df[[category_label, 'Count', 'Median ($/lb)', 'Mean ($/lb)', 'Min ($/lb)', 'Max ($/lb)']], hide_index=True)
+        cols = [category_label, 'Count', 'Median ($/lb)', 'Mean ($/lb)', 'Min ($/lb)', 'Max ($/lb)']
+        if 'q-value' in display_df.columns:
+            cols.append('q-value')   # each group vs all other coffees, BH-adjusted
+        st.dataframe(display_df[cols], hide_index=True)
 
     # Statistical test
     kw = data.get('kruskal_wallis', {})
     if kw.get('has_data'):
-        with st.expander(f"Statistical Test: Price differences across {category_label.lower()}s"):
-            es = kw.get('effect_size', 0)
-            if es < 0.01:
-                es_label = "negligible"
-            elif es < 0.06:
-                es_label = "small"
-            elif es < 0.14:
-                es_label = "medium"
-            else:
-                es_label = "large"
+        groups_word = category_plural(category_label)
+        with st.expander(f"Statistical Test: Price differences across {groups_word}"):
+            es = kw.get('eta_squared_h', kw.get('effect_size', 0))
+            es_label = effect_label(es, 'eta2_h')
 
-            if kw.get('is_significant'):
+            if as_bool(kw.get('is_significant')):
                 st.success(
-                    f"Statistically significant price differences across {category_label.lower()}s "
-                    f"(H={kw['h_statistic']:.2f}, p={kw['p_value']:.4f}, "
-                    f"effect size={es:.3f} [{es_label}])"
+                    f"Statistically significant price differences across {groups_word} "
+                    f"(H={kw['h_statistic']:.2f}, {fmt_p(kw['p_value'])}, "
+                    f"eta-squared (H)={es:.3f} [{es_label}])"
                 )
             else:
                 st.info(
-                    f"No statistically significant price differences across {category_label.lower()}s "
-                    f"(H={kw['h_statistic']:.2f}, p={kw['p_value']:.4f})"
+                    f"No statistically significant price differences across {groups_word} "
+                    f"(H={kw['h_statistic']:.2f}, {fmt_p(kw['p_value'])})"
                 )
             st.caption(
                 "**Why Kruskal-Wallis?** This test compares a numeric variable (price) across multiple "
                 "groups (e.g., countries). It's chosen over the standard ANOVA because coffee prices aren't "
                 "normally distributed — Kruskal-Wallis works by comparing *rank order* rather than raw values, "
                 "making it robust to outliers and skewed data.  \n"
-                "**Effect size** (epsilon-squared) measures how much prices actually differ across groups: "
-                "< 0.01 negligible, 0.01-0.06 small, 0.06-0.14 medium, > 0.14 large."
+                + ETA2_NOTE + (
+                    "  \nPrices by varietal use single-varietal coffees only." if 'Varietal' in category_label else "")
             )
 
 
@@ -223,7 +252,7 @@ def _render_price_by_flavor(price_data: Dict[str, Any]):
     flavor_df = pd.DataFrame(flavors)
 
     # Bar chart: price difference
-    sig_df = flavor_df[flavor_df['is_significant'] == True].copy()
+    sig_df = flavor_df[significant_mask(flavor_df['is_significant'])].copy()
     if not sig_df.empty:
         st.write(f"**{len(sig_df)} flavors with statistically significant price associations:**")
 
@@ -249,10 +278,16 @@ def _render_price_by_flavor(price_data: Dict[str, Any]):
             'median_price_with': 'Median $ (with)',
             'median_price_without': 'Median $ (without)',
             'price_difference': 'Difference',
-            'p_value': 'P-Value',
+            'q_value': 'q-value',
             'is_significant': 'Significant?',
         })
-        st.dataframe(display_df[['Flavor', 'With Flavor', 'Median $ (with)', 'Median $ (without)', 'Difference', 'P-Value', 'Significant?']], hide_index=True)
+        if 'q-value' in display_df.columns:
+            display_df['q-value'] = display_df['q-value'].apply(fmt_q)
+            cols = ['Flavor', 'With Flavor', 'Median $ (with)', 'Median $ (without)', 'Difference', 'q-value', 'Significant?']
+        else:   # older cache: raw p-values only
+            display_df = display_df.rename(columns={'p_value': 'P-Value'})
+            cols = ['Flavor', 'With Flavor', 'Median $ (with)', 'Median $ (without)', 'Difference', 'P-Value', 'Significant?']
+        st.dataframe(display_df[cols], hide_index=True)
 
 
 def _render_premium_indicators(indicators: List[Dict[str, Any]]):
@@ -260,8 +295,9 @@ def _render_premium_indicators(indicators: List[Dict[str, Any]]):
     st.subheader("Premium Indicators")
 
     st.markdown("""
-    Features most associated with higher-priced coffees, ranked by median price.
-    This combines insights from origin, process, and flavor analyses.
+    Features significantly associated with higher-priced coffees, ranked by **premium**:
+    the group's median price per lb minus the overall median. Only positive, statistically
+    significant premiums (Benjamini-Hochberg adjusted q < 0.05) are shown. This combines origin, process, and flavor analyses.
     """)
 
     if not indicators:
@@ -269,6 +305,13 @@ def _render_premium_indicators(indicators: List[Dict[str, Any]]):
         return
 
     ind_df = pd.DataFrame(indicators)
+    if 'price_premium' not in ind_df.columns:
+        st.info("Premium data is not in this cache version. Please regenerate the analytics cache.")
+        return
+    ind_df = ind_df[ind_df['price_premium'] > 0].sort_values('price_premium', ascending=False)
+    if ind_df.empty:
+        st.info("No significant positive price premiums found.")
+        return
 
     # Color by type
     color_map = {'origin': '#2E8B57', 'process': '#4682B4', 'flavor': '#DAA520'}
@@ -276,10 +319,10 @@ def _render_premium_indicators(indicators: List[Dict[str, Any]]):
     fig = px.bar(
         ind_df.head(15),
         x='value',
-        y='median_price',
+        y='price_premium',
         color='feature',
         title="Top Premium Indicators",
-        labels={'median_price': 'Median Price ($/lb)', 'value': 'Feature Value', 'feature': 'Category'},
+        labels={'price_premium': 'Premium over overall median ($/lb)', 'value': 'Feature Value', 'feature': 'Category'},
         text=ind_df.head(15)['count'].apply(lambda x: f'n={x}'),
     )
     fig.update_layout(xaxis_tickangle=45)
@@ -293,10 +336,13 @@ def _render_premium_indicators(indicators: List[Dict[str, Any]]):
             'median_price': 'Median Price ($/lb)',
             'count': 'Sample Size',
         })
-        cols = ['Category', 'Feature', 'Median Price ($/lb)', 'Sample Size']
-        if 'price_premium' in ind_df.columns:
-            display_df['Price Premium'] = ind_df['price_premium'].apply(
-                lambda x: f"${x:.2f}" if pd.notna(x) else ''
+        display_df['Premium ($/lb)'] = ind_df['price_premium'].apply(
+            lambda x: f"${x:.2f}" if pd.notna(x) else ''
+        )
+        cols = ['Category', 'Feature', 'Premium ($/lb)', 'Median Price ($/lb)', 'Sample Size']
+        if 'q_value' in ind_df.columns:
+            display_df['q-value'] = ind_df['q_value'].apply(
+                lambda x: f"{x:.4f}" if pd.notna(x) else ''
             )
-            cols.append('Price Premium')
+            cols.append('q-value')
         st.dataframe(display_df[cols], hide_index=True)
