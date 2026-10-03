@@ -12,12 +12,29 @@ from collections import defaultdict, Counter
 from itertools import combinations
 import math
 
+from scipy import sparse, stats
+
+from analytics.processing.distinctiveness import EXCLUDED_FLAVORS
+
+MIN_PAIR_COUNT = 3      # a pair must co-occur in at least this many coffees
+TOP_N_PER_FLAVOR = 10   # co-occurring flavors kept per flavor
+MIN_FLAVOR_SUPPORT = 3  # avoidance: each flavor of a pair must be listed in >= this many coffees
+TOP_N_AVOIDING = 10     # avoiding pairs reported per level
+AVOID_Q_THRESHOLD = 0.05
+
 
 class FlavorCooccurrenceAnalyzer:
     """Analyze flavor co-occurrence patterns across coffees"""
 
     def __init__(self, cross_feature_df: pd.DataFrame):
         self.df = cross_feature_df.copy()
+        # Same catch-all exclusions as the distinctiveness analysis (family 'Other')
+        for level, col in (('family', 'flavor_families'), ('genus', 'flavor_genera'),
+                           ('species', 'flavor_species')):
+            excluded = EXCLUDED_FLAVORS.get(level)
+            if excluded and col in self.df.columns:
+                self.df[col] = self.df[col].map(
+                    lambda fl, ex=excluded: [f for f in fl if f not in ex] if isinstance(fl, list) else fl)
         self._cooccurrence_cache = {}
         self._pmi_cache = {}
 
@@ -198,34 +215,131 @@ class FlavorCooccurrenceAnalyzer:
 
         return results
 
-    def get_distinctive_flavor_combinations(self, taxonomy_level: str = 'family',
-                                             min_support: int = 5) -> List[Dict[str, Any]]:
+    def compute_avoiding_pairs(self, taxonomy_level: str = 'family',
+                               min_flavor_coffees: int = MIN_FLAVOR_SUPPORT,
+                               top_n: int = TOP_N_AVOIDING,
+                               q_threshold: float = AVOID_Q_THRESHOLD) -> List[Dict[str, Any]]:
+        """Flavor pairs that appear together LESS often than chance would predict.
+
+        Considers ALL pairs of flavors that each appear in at least
+        ``min_flavor_coffees`` coffees, including pairs that never co-occur
+        (these are never counted by the pair table). Expected count =
+        n_a * n_b / N over coffees with flavor notes. A one-sided Fisher exact
+        test ('less') gives p; p is Benjamini-Hochberg corrected over every pair
+        tested. Reported: q < q_threshold, ordered by observed/expected (lowest
+        first), then by larger expected count.
         """
-        Find flavor pairs that are statistically unusual (high PMI).
-        Returns pairs sorted by PMI, filtered by minimum co-occurrence count.
+        col_map = {'family': 'flavor_families', 'genus': 'flavor_genera', 'species': 'flavor_species'}
+        list_col = col_map.get(taxonomy_level, 'flavor_families')
+        if list_col not in self.df.columns:
+            return []
+
+        vocab: Dict[str, int] = {}
+        rows, cols = [], []
+        n_coffees = 0
+        for fl in self.df[list_col]:
+            if not isinstance(fl, list):
+                continue
+            uniq = {f for f in fl if f}
+            if not uniq:
+                continue
+            for f in uniq:
+                rows.append(n_coffees)
+                cols.append(vocab.setdefault(f, len(vocab)))
+            n_coffees += 1
+        if n_coffees == 0 or not vocab:
+            return []
+
+        X = sparse.csr_matrix((np.ones(len(rows), dtype=np.int64), (rows, cols)),
+                              shape=(n_coffees, len(vocab)))
+        names = [None] * len(vocab)
+        for f, j in vocab.items():
+            names[j] = f
+        counts = np.asarray(X.sum(axis=0)).ravel()
+        keep = np.where(counts >= min_flavor_coffees)[0]
+        if len(keep) < 2:
+            return []
+        Xk = X[:, keep]
+        C = np.asarray((Xk.T @ Xk).todense())          # observed pair counts
+        nk = counts[keep]
+        i_idx, j_idx = np.triu_indices(len(keep), k=1)
+        obs = C[i_idx, j_idx]
+        n1, n2 = nk[i_idx], nk[j_idx]
+        expected = n1 * n2 / n_coffees
+        # P(X <= obs) under the hypergeometric null == one-sided Fisher exact 'less'
+        p = stats.hypergeom.cdf(obs, n_coffees, n1, n2)
+        q = stats.false_discovery_control(p, method='bh')
+        sel = np.where((q < q_threshold) & (obs < expected))[0]
+        if len(sel) == 0:
+            return []
+        ratio = obs[sel] / expected[sel]
+        order = sel[np.lexsort((-expected[sel], ratio))][:top_n]
+        out = []
+        for k in order:
+            out.append({
+                'flavor_1': names[keep[i_idx[k]]], 'flavor_2': names[keep[j_idx[k]]],
+                'count_1': int(n1[k]), 'count_2': int(n2[k]),
+                'cooccurrence_count': int(obs[k]),
+                'expected_count': float(expected[k]),
+                'ratio': float(obs[k] / expected[k]),
+                'p_value': float(p[k]), 'q_value': float(q[k]),
+                'total_coffees': int(n_coffees),
+            })
+        return out
+
+    def get_distinctive_flavor_combinations(self, taxonomy_level: str = 'family',
+                                             min_support: int = 5) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Surprising pairs (high PMI, co-occurring in at least min_support coffees) and
+        avoiding pairs (see compute_avoiding_pairs: all supported pairs, including
+        those that never co-occur).
+        """
+        results: Dict[str, List[Dict[str, Any]]] = {
+            'surprising_pairs': [],
+            'avoiding_pairs': self.compute_avoiding_pairs(taxonomy_level),
+        }
+        pmi_df = self.compute_pmi(taxonomy_level)
+        if not pmi_df.empty:
+            filtered = pmi_df[pmi_df['cooccurrence_count'] >= min_support]
+            if not filtered.empty:
+                results['surprising_pairs'] = filtered.nlargest(15, 'pmi').to_dict('records')
+        return results
+
+    def conditional_by_flavor(self, taxonomy_level: str = 'family',
+                              top_n: int = TOP_N_PER_FLAVOR,
+                              min_count: int = MIN_PAIR_COUNT) -> Dict[str, List[Dict[str, Any]]]:
+        """For every flavor A: its top co-occurring flavors B as P(B | A).
+
+        Built from the full pair table (not a global top-N), so every flavor
+        has an entry. Includes the base rate P(B) over flavored coffees and
+        the ratio P(B|A) / P(B) so the page can say how much more often B
+        appears alongside A than overall.
         """
         pmi_df = self.compute_pmi(taxonomy_level)
-
         if pmi_df.empty:
-            return []
-
-        # Filter by minimum support
-        filtered = pmi_df[pmi_df['cooccurrence_count'] >= min_support].copy()
-
-        if filtered.empty:
-            return []
-
-        # Top positive PMI (appear together more than expected)
-        top_positive = filtered.nlargest(15, 'pmi')
-        # Top negative PMI (appear together less than expected)
-        top_negative = filtered.nsmallest(10, 'pmi')
-
-        results = {
-            'surprising_pairs': top_positive.to_dict('records'),
-            'avoiding_pairs': top_negative.to_dict('records'),
-        }
-
-        return results
+            return {}
+        pmi_df = pmi_df[pmi_df['cooccurrence_count'] >= min_count]
+        a_side = pd.DataFrame({
+            'flavor': pmi_df['flavor_1'], 'other': pmi_df['flavor_2'],
+            'n_flavor': pmi_df['count_1'], 'n_other': pmi_df['count_2'],
+            'count': pmi_df['cooccurrence_count'], 'total': pmi_df['total_coffees']})
+        b_side = pd.DataFrame({
+            'flavor': pmi_df['flavor_2'], 'other': pmi_df['flavor_1'],
+            'n_flavor': pmi_df['count_2'], 'n_other': pmi_df['count_1'],
+            'count': pmi_df['cooccurrence_count'], 'total': pmi_df['total_coffees']})
+        both = pd.concat([a_side, b_side], ignore_index=True)
+        both['p_b_given_a'] = both['count'] / both['n_flavor']
+        both['p_b'] = both['n_other'] / both['total']
+        both['ratio'] = both['p_b_given_a'] / both['p_b']
+        out: Dict[str, List[Dict[str, Any]]] = {}
+        for flavor, g in both.groupby('flavor'):
+            g = g.sort_values(['count', 'p_b_given_a'], ascending=False).head(top_n)
+            out[str(flavor)] = [{
+                'flavor': str(r.other), 'cooccurrence_count': int(r.count),
+                'n_flavor': int(r.n_flavor), 'p_b_given_a': float(r.p_b_given_a),
+                'p_b': float(r.p_b), 'ratio': float(r.ratio),
+            } for r in g.itertuples()]
+        return out
 
     def get_cooccurrence_summary(self, taxonomy_level: str = 'family') -> Dict[str, Any]:
         """Get a summary of co-occurrence patterns for cache generation"""
@@ -251,6 +365,7 @@ class FlavorCooccurrenceAnalyzer:
             'matrix': matrix_data,
             'top_pairs_by_count': top_pairs,
             'distinctive_combinations': distinctive,
+            'by_flavor': self.conditional_by_flavor(taxonomy_level),
             'taxonomy_level': taxonomy_level,
         }
 

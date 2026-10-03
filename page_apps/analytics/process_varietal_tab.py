@@ -11,6 +11,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 from typing import Dict, Any
 
+from analytics.constants import unit_label
+from page_apps.analytics.common import fmt_n, render_chi_square
+
 
 def render_process_varietal_tab():
     """Render the Process & Varietal analytics tab"""
@@ -84,6 +87,8 @@ def _render_process_by_origin(data: Dict[str, Any]):
     groups = stacked.get('groups', [])
     categories = stacked.get('categories', [])
     percentages = stacked.get('percentages', [])
+    if view == "Region":
+        groups = [unit_label('region', g) for g in groups]   # "Country / Subregion"
 
     if groups and categories and percentages:
         # Stacked bar chart (percentage)
@@ -133,7 +138,7 @@ def _render_varietal_by_origin(data: Dict[str, Any]):
             values,
             x=cols,
             y=rows,
-            title="Varietal by Country" + (" (%)" if show_pct else " (count)"),
+            title="Varietal by Country" + (" (%)" if show_pct else " (coffee count; multi-varietal coffees are split evenly)"),
             color_continuous_scale='YlGnBu',
             aspect='auto',
         )
@@ -174,7 +179,13 @@ def _render_flavor_by_group(all_data: Dict[str, Any],
 
     if selected and selected in profiles:
         profile = profiles[selected]
-        st.write(f"**{selected}** — {profile['total_coffees']} coffees")
+        n_distinct = profile.get('n_coffees')
+        eff = profile.get('total_coffees', 0)
+        if n_distinct is not None and abs(float(n_distinct) - float(eff)) > 0.05:
+            st.write(f"**{selected}** — {fmt_n(n_distinct)} coffees (counted as {fmt_n(eff)} "
+                     "after splitting multi-varietal coffees evenly)")
+        else:
+            st.write(f"**{selected}** — {fmt_n(n_distinct if n_distinct is not None else eff)} coffees")
 
         flavor_df = pd.DataFrame(profile['flavors'][:20])
         if not flavor_df.empty:
@@ -184,7 +195,7 @@ def _render_flavor_by_group(all_data: Dict[str, Any],
                 y='rate',
                 title=f"Flavor Profile of {selected} ({level} Level)",
                 labels={'rate': 'Proportion of Coffees', 'flavor': f'Flavor {level}'},
-                text=flavor_df['count'].apply(lambda x: f'n={x}'),
+                text=flavor_df['count'].apply(lambda x: f'n={fmt_n(x)}'),
             )
             fig.update_layout(xaxis_tickangle=45, yaxis_tickformat='.0%')
             st.plotly_chart(fig, use_container_width=True)
@@ -236,7 +247,7 @@ def _render_process_by_varietal(data: Dict[str, Any]):
             values,
             x=cols,
             y=rows,
-            title="Process Method by Varietal" + (" (%)" if show_pct else " (count)"),
+            title="Process Method by Varietal" + (" (%)" if show_pct else " (coffee count; multi-varietal coffees are split evenly)"),
             color_continuous_scale='YlOrRd',
             aspect='auto',
         )
@@ -251,30 +262,5 @@ def _render_process_by_varietal(data: Dict[str, Any]):
 # --------------------------------------------------------------------------
 
 def _render_chi_square_result(chi2: Dict[str, Any], pair_label: str):
-    """Render chi-square test result in an expander"""
-    if not chi2 or not chi2.get('has_data'):
-        return
-
-    with st.expander(f"Statistical Test: Association between {pair_label}"):
-        v = chi2.get('cramers_v', 0)
-        interp = chi2.get('effect_interpretation', 'unknown')
-        if chi2.get('is_significant'):
-            st.success(
-                f"Statistically significant association "
-                f"(Chi2={chi2['chi2']:.1f}, p={chi2['p_value']:.4f}, "
-                f"Cramer's V={v:.3f} [{interp}], n={chi2['n_observations']})"
-            )
-        else:
-            st.info(
-                f"No significant association "
-                f"(Chi2={chi2['chi2']:.1f}, p={chi2['p_value']:.4f}, "
-                f"Cramer's V={v:.3f} [{interp}])"
-            )
-        st.caption(
-            "**Why Chi-square?** This test is designed for comparing two categorical variables "
-            "(e.g., country vs process method). It checks whether certain combinations occur more or "
-            "less often than you'd expect if the two features were completely independent. "
-            "For example: \"Do Kenyan coffees use Washed processing more often than other countries?\"  \n"
-            "**Cramer's V** is the effect size — it tells you how *strong* the association is "
-            "(not just whether it exists). Thresholds: < 0.1 negligible, 0.1-0.3 small, 0.3-0.5 medium, > 0.5 large."
-        )
+    """Chi-square result: handles ok / collapsed / monte_carlo / insufficient statuses"""
+    render_chi_square(chi2, pair_label)

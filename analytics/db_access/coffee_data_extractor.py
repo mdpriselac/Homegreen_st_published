@@ -11,9 +11,17 @@ from typing import Dict, List, Any, Optional, Tuple
 import pandas as pd
 import json
 from datetime import datetime
+import numpy as np
 
-# Opt into future pandas behavior to eliminate FutureWarnings
-pd.set_option('future.no_silent_downcasting', True)
+from analytics.processing.data_hygiene import (
+    add_region_key, clean_flavors, clean_text, normalise_subregion, normalize_process,
+)
+from analytics.processing.varietals import clean_varietal_list, split_varietal_string
+
+# pandas 2.x: opt into the future no-silent-downcasting behaviour (it is the default,
+# and the option is deprecated, in pandas 3)
+if int(pd.__version__.split('.')[0]) < 3:
+    pd.set_option('future.no_silent_downcasting', True)
 
 
 class CoffeeDataExtractor:
@@ -25,7 +33,6 @@ class CoffeeDataExtractor:
         self.supabase_anon_key = st.secrets["supabase"]["anon_key"]
         self.client = create_client(self.supabase_url, self.supabase_anon_key)
     
-    @st.cache_data(ttl=3600)
     def extract_raw_data(_self) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
         Extract raw data from database
@@ -124,12 +131,16 @@ class CoffeeDataExtractor:
         return []
 
     def _parse_varietal(self, varietal_val) -> List[str]:
-        """Parse varietal field into list of varietal names"""
-        if pd.isna(varietal_val) or varietal_val is None:
+        """Parse varietal field into a list of canonical varietal names.
+
+        Placeholders ("UNKNOWN", "[]", "") yield []; spellings are normalised
+        (see analytics.processing.varietals) and duplicates removed.
+        """
+        if varietal_val is None or (isinstance(varietal_val, float) and pd.isna(varietal_val)):
             return []
 
-        if isinstance(varietal_val, list):
-            return [v.strip() for v in varietal_val if v and str(v).strip()]
+        if isinstance(varietal_val, (list, tuple)):
+            return clean_varietal_list(list(varietal_val))
 
         if isinstance(varietal_val, str):
             val = varietal_val.strip()
@@ -140,74 +151,24 @@ class CoffeeDataExtractor:
                 try:
                     parsed = parser(val)
                     if isinstance(parsed, list):
-                        return [str(v).strip() for v in parsed if v and str(v).strip()]
+                        return clean_varietal_list([str(v) for v in parsed if v])
                 except Exception:
                     continue
-            # Try ast.literal_eval
             try:
                 import ast
                 parsed = ast.literal_eval(val)
                 if isinstance(parsed, list):
-                    return [str(v).strip() for v in parsed if v and str(v).strip()]
+                    return clean_varietal_list([str(v) for v in parsed if v])
             except Exception:
                 pass
-            # Treat as single varietal or comma-separated
-            if ',' in val:
-                return [v.strip() for v in val.split(',') if v.strip()]
-            return [val] if val else []
+            # Free text: comma-separated (commas inside parentheses are kept)
+            return clean_varietal_list(split_varietal_string(val))
 
         return []
 
     def _normalize_process_type(self, process_val) -> Optional[str]:
-        """Normalize process type to canonical categories"""
-        if pd.isna(process_val) or process_val is None:
-            return None
-
-        val = str(process_val).strip().lower()
-        if not val:
-            return None
-
-        # Mapping of variations to canonical names
-        process_map = {
-            'washed': 'Washed',
-            'fully washed': 'Washed',
-            'fully-washed': 'Washed',
-            'double washed': 'Washed',
-            'wet process': 'Washed',
-            'natural': 'Natural',
-            'dry process': 'Natural',
-            'sun dried': 'Natural',
-            'honey': 'Honey',
-            'honey process': 'Honey',
-            'yellow honey': 'Honey',
-            'red honey': 'Honey',
-            'black honey': 'Honey',
-            'white honey': 'Honey',
-            'pulped natural': 'Honey',
-            'wet hulled': 'Wet Hulled',
-            'wet-hulled': 'Wet Hulled',
-            'giling basah': 'Wet Hulled',
-            'anaerobic': 'Anaerobic',
-            'anaerobic natural': 'Anaerobic',
-            'anaerobic washed': 'Anaerobic',
-            'carbonic maceration': 'Anaerobic',
-            'multi-stage fermentation': 'Anaerobic',
-            'monsoon': 'Other',
-            'monsooned': 'Other',
-            'decaf': 'Other',
-            'decaffeinated': 'Other',
-        }
-
-        # Try exact match first
-        if val in process_map:
-            return process_map[val]
-
-        # Try substring match
-        for key, canonical in process_map.items():
-            if key in val:
-                return canonical
-
-        return process_val.strip()  # Return original if no match
+        """Exact-match process normalisation; unknown values become NaN (logged)."""
+        return normalize_process(process_val)
 
     def merge_and_prepare_data(self, attributes_df: pd.DataFrame,
                              coffee_seller_df: pd.DataFrame) -> pd.DataFrame:
@@ -228,34 +189,44 @@ class CoffeeDataExtractor:
             how='left'
         )
         
-        # Parse flavors
-        merged_df['flavors_parsed'] = merged_df['categorized_flavors'].apply(self._parse_flavors)
+        # Placeholders ("UNKNOWN", "", "N/A", ...) are missing values, not categories
+        for col in ['country_final', 'subregion_final', 'seller_name']:
+            if col in merged_df.columns:
+                merged_df[col] = merged_df[col].map(clean_text).astype(object)
+
+        # Known subregion spelling variants are merged BEFORE the region key is built,
+        # so raw columns and keys agree (placeholders become NaN here too)
+        merged_df['subregion_final'] = pd.Series(
+            [normalise_subregion(c, s) for c, s in zip(merged_df['country_final'], merged_df['subregion_final'])],
+            index=merged_df.index, dtype=object)
+
+        # Parse flavors (falsy family/genus/species dropped at their level)
+        merged_df['flavors_parsed'] = merged_df['categorized_flavors'].apply(
+            lambda v: clean_flavors(self._parse_flavors(v)))
 
         # Add metadata
         merged_df['has_flavors'] = merged_df['flavors_parsed'].apply(lambda x: len(x) > 0)
         merged_df['flavor_count'] = merged_df['flavors_parsed'].apply(len)
 
-        # Create region key
-        merged_df['region_key'] = merged_df.apply(
-            lambda row: f"{row['country_final']}_{row['subregion_final']}"
-            if pd.notna(row['subregion_final']) and row['subregion_final']
-            else None,
-            axis=1
-        )
+        # Region identity = country + subregion (NaN if either is missing)
+        merged_df['region_key'] = add_region_key(merged_df, 'country_final', 'subregion_final')
 
         # Parse varietal field
         merged_df['varietals_parsed'] = merged_df['varietal'].apply(self._parse_varietal)
         merged_df['has_varietal'] = merged_df['varietals_parsed'].apply(lambda x: len(x) > 0)
 
-        # Normalize process type
-        merged_df['process_type_clean'] = merged_df['process_type_final'].apply(self._normalize_process_type)
+        # Normalize process type (exact mapping; unrecognised -> NaN)
+        merged_df['process_type_clean'] = merged_df['process_type_final'].apply(
+            self._normalize_process_type).astype(object)
         merged_df['has_process'] = merged_df['process_type_clean'].notna()
 
         # Parse price fields to numeric
         for price_col in ['average_per_lb', 'cheapest_per_lb', 'highest_per_lb']:
             if price_col in merged_df.columns:
                 merged_df[price_col] = pd.to_numeric(merged_df[price_col], errors='coerce')
-        merged_df['has_price'] = merged_df['average_per_lb'].notna()
+        # Headline price = cheapest per-lb price offered (usually the largest bag).
+        # average_per_lb mixes small-bag and bulk per-lb prices, so it is not used.
+        merged_df['has_price'] = merged_df['cheapest_per_lb'].notna()
 
         # Parse date fields and compute lifespan
         merged_df['first_observed'] = pd.to_datetime(merged_df['first_observed'], errors='coerce')
@@ -263,402 +234,6 @@ class CoffeeDataExtractor:
         merged_df['lifespan_days'] = (merged_df['last_observed'] - merged_df['first_observed']).dt.days
 
         return merged_df
-    
-    def aggregate_by_country(self, merged_df: pd.DataFrame) -> Dict[str, Dict[str, Any]]:
-        """
-        Aggregate data by country
-        
-        Args:
-            merged_df: Merged dataset
-            
-        Returns:
-            Dict[str, Dict[str, Any]]: Country-level aggregated data
-        """
-        country_data = {}
-        
-        for country in merged_df['country_final'].unique():
-            if pd.isna(country) or not country:
-                continue
-                
-            country_df = merged_df[merged_df['country_final'] == country]
-            
-            # Collect all coffees
-            coffees = []
-            all_flavors = []
-            
-            for _, row in country_df.iterrows():
-                coffee_info = {
-                    'coffee_id': row['coffee_id'],
-                    'coffee_name': row['coffee_name'],
-                    'seller_name': row['seller_name'],
-                    'subregion': row['subregion_final'],
-                    'flavors': row['flavors_parsed']
-                }
-                coffees.append(coffee_info)
-                all_flavors.extend(row['flavors_parsed'])
-            
-            # Calculate metadata
-            unique_subregions = country_df['subregion_final'].dropna().unique().tolist()
-            unique_sellers = country_df['seller_name'].dropna().unique().tolist()
-            
-            # Get unique flavor counts at each level
-            unique_families = set(f['family'] for f in all_flavors if 'family' in f)
-            unique_genera = set(f['genus'] for f in all_flavors if 'genus' in f)
-            unique_species = set(f['species'] for f in all_flavors if 'species' in f)
-            
-            country_data[country] = {
-                'coffees': coffees,
-                'all_flavors': all_flavors,
-                'metadata': {
-                    'total_coffees': len(country_df),
-                    'unique_subregions': unique_subregions,
-                    'unique_sellers': unique_sellers,
-                    'total_flavor_instances': len(all_flavors),
-                    'unique_flavor_families': list(unique_families),
-                    'unique_flavor_genera': list(unique_genera),
-                    'unique_flavor_species': list(unique_species)
-                }
-            }
-        
-        return country_data
-    
-    def aggregate_by_region(self, merged_df: pd.DataFrame) -> Dict[str, Dict[str, Any]]:
-        """
-        Aggregate data by region (country_subregion)
-        
-        Args:
-            merged_df: Merged dataset
-            
-        Returns:
-            Dict[str, Dict[str, Any]]: Region-level aggregated data
-        """
-        region_data = {}
-        
-        # Filter for valid regions
-        region_df = merged_df[merged_df['region_key'].notna()]
-        
-        for region_key in region_df['region_key'].unique():
-            region_rows = region_df[region_df['region_key'] == region_key]
-            
-            # Extract country and subregion
-            country = region_rows.iloc[0]['country_final']
-            subregion = region_rows.iloc[0]['subregion_final']
-            
-            # Collect all coffees
-            coffees = []
-            all_flavors = []
-            
-            for _, row in region_rows.iterrows():
-                coffee_info = {
-                    'coffee_id': row['coffee_id'],
-                    'coffee_name': row['coffee_name'],
-                    'seller_name': row['seller_name'],
-                    'flavors': row['flavors_parsed']
-                }
-                coffees.append(coffee_info)
-                all_flavors.extend(row['flavors_parsed'])
-            
-            # Calculate metadata
-            unique_sellers = region_rows['seller_name'].dropna().unique().tolist()
-            
-            # Get unique flavor counts at each level
-            unique_families = set(f['family'] for f in all_flavors if 'family' in f)
-            unique_genera = set(f['genus'] for f in all_flavors if 'genus' in f)
-            unique_species = set(f['species'] for f in all_flavors if 'species' in f)
-            
-            region_data[region_key] = {
-                'country': country,
-                'subregion': subregion,
-                'coffees': coffees,
-                'all_flavors': all_flavors,
-                'metadata': {
-                    'total_coffees': len(region_rows),
-                    'unique_sellers': unique_sellers,
-                    'total_flavor_instances': len(all_flavors),
-                    'unique_flavor_families': list(unique_families),
-                    'unique_flavor_genera': list(unique_genera),
-                    'unique_flavor_species': list(unique_species)
-                }
-            }
-        
-        return region_data
-    
-    def aggregate_by_seller(self, merged_df: pd.DataFrame) -> Dict[str, Dict[str, Any]]:
-        """
-        Aggregate data by seller
-        
-        Args:
-            merged_df: Merged dataset
-            
-        Returns:
-            Dict[str, Dict[str, Any]]: Seller-level aggregated data
-        """
-        seller_data = {}
-        
-        for seller in merged_df['seller_name'].unique():
-            if pd.isna(seller) or not seller or seller == 'Unknown':
-                continue
-                
-            seller_df = merged_df[merged_df['seller_name'] == seller]
-            
-            # Get seller_id
-            seller_id = seller_df['seller_id'].iloc[0] if not seller_df.empty else None
-            
-            # Collect all coffees
-            coffees = []
-            all_flavors = []
-            
-            for _, row in seller_df.iterrows():
-                coffee_info = {
-                    'coffee_id': row['coffee_id'],
-                    'coffee_name': row['coffee_name'],
-                    'country': row['country_final'],
-                    'subregion': row['subregion_final'],
-                    'flavors': row['flavors_parsed']
-                }
-                coffees.append(coffee_info)
-                all_flavors.extend(row['flavors_parsed'])
-            
-            # Calculate metadata
-            unique_countries = seller_df['country_final'].dropna().unique().tolist()
-            unique_subregions = seller_df['subregion_final'].dropna().unique().tolist()
-            
-            # Get unique flavor counts at each level
-            unique_families = set(f['family'] for f in all_flavors if 'family' in f)
-            unique_genera = set(f['genus'] for f in all_flavors if 'genus' in f)
-            unique_species = set(f['species'] for f in all_flavors if 'species' in f)
-            
-            seller_data[seller] = {
-                'seller_id': seller_id,
-                'coffees': coffees,
-                'all_flavors': all_flavors,
-                'metadata': {
-                    'total_coffees': len(seller_df),
-                    'unique_countries': unique_countries,
-                    'unique_subregions': unique_subregions,
-                    'total_flavor_instances': len(all_flavors),
-                    'unique_flavor_families': list(unique_families),
-                    'unique_flavor_genera': list(unique_genera),
-                    'unique_flavor_species': list(unique_species)
-                }
-            }
-        
-        return seller_data
-    
-    def prepare_contingency_format(self, country_data: Dict[str, Dict[str, Any]],
-                                 region_data: Dict[str, Dict[str, Any]],
-                                 seller_data: Dict[str, Dict[str, Any]]) -> pd.DataFrame:
-        """
-        Prepare data in contingency table format for frequency analysis
-        
-        Returns:
-            pd.DataFrame: Contingency format data
-        """
-        rows = []
-        
-        # Process countries
-        for country, data in country_data.items():
-            base_row = {
-                'unit': country,
-                'unit_type': 'country',
-                'total_coffees': data['metadata']['total_coffees'],
-                'total_flavor_instances': data['metadata']['total_flavor_instances']
-            }
-            
-            # Count flavors at each level
-            flavor_counts = self._count_flavors_by_level(data['all_flavors'])
-            
-            # Add flavor columns
-            for level in ['family', 'genus', 'species']:
-                for flavor, count in flavor_counts[level].items():
-                    base_row[f'has_{level}_{flavor}'] = True
-                    base_row[f'count_{level}_{flavor}'] = count
-                    base_row[f'freq_{level}_{flavor}'] = count / data['metadata']['total_flavor_instances'] if data['metadata']['total_flavor_instances'] > 0 else 0
-            
-            rows.append(base_row)
-        
-        # Process regions
-        for region, data in region_data.items():
-            base_row = {
-                'unit': region,
-                'unit_type': 'region',
-                'total_coffees': data['metadata']['total_coffees'],
-                'total_flavor_instances': data['metadata']['total_flavor_instances']
-            }
-            
-            # Count flavors at each level
-            flavor_counts = self._count_flavors_by_level(data['all_flavors'])
-            
-            # Add flavor columns
-            for level in ['family', 'genus', 'species']:
-                for flavor, count in flavor_counts[level].items():
-                    base_row[f'has_{level}_{flavor}'] = True
-                    base_row[f'count_{level}_{flavor}'] = count
-                    base_row[f'freq_{level}_{flavor}'] = count / data['metadata']['total_flavor_instances'] if data['metadata']['total_flavor_instances'] > 0 else 0
-            
-            rows.append(base_row)
-        
-        # Process sellers
-        for seller, data in seller_data.items():
-            base_row = {
-                'unit': seller,
-                'unit_type': 'seller',
-                'total_coffees': data['metadata']['total_coffees'],
-                'total_flavor_instances': data['metadata']['total_flavor_instances']
-            }
-            
-            # Count flavors at each level
-            flavor_counts = self._count_flavors_by_level(data['all_flavors'])
-            
-            # Add flavor columns
-            for level in ['family', 'genus', 'species']:
-                for flavor, count in flavor_counts[level].items():
-                    base_row[f'has_{level}_{flavor}'] = True
-                    base_row[f'count_{level}_{flavor}'] = count
-                    base_row[f'freq_{level}_{flavor}'] = count / data['metadata']['total_flavor_instances'] if data['metadata']['total_flavor_instances'] > 0 else 0
-            
-            rows.append(base_row)
-        
-        df = pd.DataFrame(rows)
-        
-        # Fill NaN values with appropriate defaults
-        # Boolean columns - use infer_objects as recommended by pandas FutureWarning
-        bool_cols = [col for col in df.columns if col.startswith('has_')]
-        for col in bool_cols:
-            df[col] = df[col].fillna(False).infer_objects(copy=False)
-        
-        # Count columns  
-        count_cols = [col for col in df.columns if col.startswith('count_')]
-        for col in count_cols:
-            df[col] = df[col].fillna(0).infer_objects(copy=False)
-        
-        # Frequency columns
-        freq_cols = [col for col in df.columns if col.startswith('freq_')]
-        for col in freq_cols:
-            df[col] = df[col].fillna(0.0).infer_objects(copy=False)
-        
-        return df
-    
-    def prepare_tfidf_format(self, country_data: Dict[str, Dict[str, Any]],
-                           region_data: Dict[str, Dict[str, Any]],
-                           seller_data: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Dict[str, List[str]]]]:
-        """
-        Prepare data in document-term format for TF-IDF analysis
-        
-        Returns:
-            Dict: Document-term format data
-        """
-        tfidf_data = {
-            'family_level': {
-                'countries': {},
-                'regions': {},
-                'sellers': {}
-            },
-            'genus_level': {
-                'countries': {},
-                'regions': {},
-                'sellers': {}
-            },
-            'species_level': {
-                'countries': {},
-                'regions': {},
-                'sellers': {}
-            }
-        }
-        
-        # Process countries
-        for country, data in country_data.items():
-            family_terms = [f['family'] for f in data['all_flavors'] if 'family' in f]
-            genus_terms = [f['genus'] for f in data['all_flavors'] if 'genus' in f]
-            species_terms = [f['species'] for f in data['all_flavors'] if 'species' in f]
-            
-            tfidf_data['family_level']['countries'][country] = family_terms
-            tfidf_data['genus_level']['countries'][country] = genus_terms
-            tfidf_data['species_level']['countries'][country] = species_terms
-        
-        # Process regions
-        for region, data in region_data.items():
-            family_terms = [f['family'] for f in data['all_flavors'] if 'family' in f]
-            genus_terms = [f['genus'] for f in data['all_flavors'] if 'genus' in f]
-            species_terms = [f['species'] for f in data['all_flavors'] if 'species' in f]
-            
-            tfidf_data['family_level']['regions'][region] = family_terms
-            tfidf_data['genus_level']['regions'][region] = genus_terms
-            tfidf_data['species_level']['regions'][region] = species_terms
-        
-        # Process sellers
-        for seller, data in seller_data.items():
-            family_terms = [f['family'] for f in data['all_flavors'] if 'family' in f]
-            genus_terms = [f['genus'] for f in data['all_flavors'] if 'genus' in f]
-            species_terms = [f['species'] for f in data['all_flavors'] if 'species' in f]
-            
-            tfidf_data['family_level']['sellers'][seller] = family_terms
-            tfidf_data['genus_level']['sellers'][seller] = genus_terms
-            tfidf_data['species_level']['sellers'][seller] = species_terms
-        
-        return tfidf_data
-    
-    def prepare_hierarchical_format(self, country_data: Dict[str, Dict[str, Any]],
-                                  region_data: Dict[str, Dict[str, Any]],
-                                  seller_data: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-        """
-        Prepare data in hierarchical format for multi-level analysis
-        
-        Returns:
-            Dict: Hierarchical format data
-        """
-        hierarchical_data = {}
-        
-        # Process all unit types
-        all_data = [
-            ('country', country_data),
-            ('region', region_data),
-            ('seller', seller_data)
-        ]
-        
-        for unit_type, unit_data in all_data:
-            for unit_name, data in unit_data.items():
-                # Count flavors at each level
-                flavor_counts = self._count_flavors_by_level(data['all_flavors'])
-                
-                # Build hierarchy tree
-                hierarchy_tree = self._build_hierarchy_tree(data['all_flavors'])
-                
-                # Calculate frequencies
-                total_instances = data['metadata']['total_flavor_instances']
-                
-                hierarchical_data[unit_name] = {
-                    'unit_type': unit_type,
-                    'family_level': {
-                        flavor: {
-                            'count': count,
-                            'frequency': count / total_instances if total_instances > 0 else 0
-                        }
-                        for flavor, count in flavor_counts['family'].items()
-                    },
-                    'genus_level': {
-                        flavor: {
-                            'count': count,
-                            'frequency': count / total_instances if total_instances > 0 else 0,
-                            'parent_family': self._find_parent_family(flavor, data['all_flavors'])
-                        }
-                        for flavor, count in flavor_counts['genus'].items()
-                    },
-                    'species_level': {
-                        flavor: {
-                            'count': count,
-                            'frequency': count / total_instances if total_instances > 0 else 0,
-                            'parent_genus': self._find_parent_genus(flavor, data['all_flavors']),
-                            'parent_family': self._find_parent_family_for_species(flavor, data['all_flavors'])
-                        }
-                        for flavor, count in flavor_counts['species'].items()
-                    },
-                    'hierarchy_tree': hierarchy_tree,
-                    'total_coffees': data['metadata']['total_coffees'],
-                    'total_flavor_instances': total_instances
-                }
-        
-        return hierarchical_data
     
     def prepare_cross_feature_format(self, merged_df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -685,12 +260,12 @@ class CoffeeDataExtractor:
                 'coffee_id': row.get('coffee_id'),
                 'coffee_name': row.get('coffee_name'),
                 'country': row.get('country_final'),
-                'region': row.get('subregion_final'),
+                'region': row.get('region_key'),   # country+subregion, never bare subregion
+                'subregion': row.get('subregion_final'),
                 'seller': row.get('seller_name'),
                 'process_type': row.get('process_type_clean'),
                 'varietals': row.get('varietals_parsed', []),
-                'avg_price': row.get('average_per_lb'),
-                'min_price': row.get('cheapest_per_lb'),
+                'price_per_lb': row.get('cheapest_per_lb'),
                 'max_price': row.get('highest_per_lb'),
                 'flavor_families': flavor_families,
                 'flavor_genera': flavor_genera,
@@ -703,69 +278,11 @@ class CoffeeDataExtractor:
                 'has_price': row.get('has_price', False),
                 'has_varietal': row.get('has_varietal', False),
                 'has_process': row.get('has_process', False),
+                'has_region': pd.notna(row.get('region_key')),
             })
 
         return pd.DataFrame(rows)
 
-    def _count_flavors_by_level(self, flavors: List[Dict[str, str]]) -> Dict[str, Dict[str, int]]:
-        """Count flavor occurrences at each taxonomy level"""
-        counts = {
-            'family': {},
-            'genus': {},
-            'species': {}
-        }
-        
-        for flavor in flavors:
-            if 'family' in flavor and flavor['family']:
-                counts['family'][flavor['family']] = counts['family'].get(flavor['family'], 0) + 1
-            if 'genus' in flavor and flavor['genus']:
-                counts['genus'][flavor['genus']] = counts['genus'].get(flavor['genus'], 0) + 1
-            if 'species' in flavor and flavor['species']:
-                counts['species'][flavor['species']] = counts['species'].get(flavor['species'], 0) + 1
-        
-        return counts
-    
-    def _build_hierarchy_tree(self, flavors: List[Dict[str, str]]) -> Dict[str, Dict[str, List[str]]]:
-        """Build hierarchical tree structure of flavors"""
-        tree = {}
-        
-        for flavor in flavors:
-            family = flavor.get('family', '')
-            genus = flavor.get('genus', '')
-            species = flavor.get('species', '')
-            
-            if family:
-                if family not in tree:
-                    tree[family] = {}
-                if genus:
-                    if genus not in tree[family]:
-                        tree[family][genus] = []
-                    if species and species not in tree[family][genus]:
-                        tree[family][genus].append(species)
-        
-        return tree
-    
-    def _find_parent_family(self, genus: str, flavors: List[Dict[str, str]]) -> str:
-        """Find parent family for a genus"""
-        for flavor in flavors:
-            if flavor.get('genus') == genus:
-                return flavor.get('family', '')
-        return ''
-    
-    def _find_parent_genus(self, species: str, flavors: List[Dict[str, str]]) -> str:
-        """Find parent genus for a species"""
-        for flavor in flavors:
-            if flavor.get('species') == species:
-                return flavor.get('genus', '')
-        return ''
-    
-    def _find_parent_family_for_species(self, species: str, flavors: List[Dict[str, str]]) -> str:
-        """Find parent family for a species"""
-        for flavor in flavors:
-            if flavor.get('species') == species:
-                return flavor.get('family', '')
-        return ''
-    
     def extract_and_prepare_all_data(self) -> Dict[str, Any]:
         """
         Main method to extract and prepare all data formats
@@ -779,35 +296,18 @@ class CoffeeDataExtractor:
         # Merge and prepare
         merged_df = self.merge_and_prepare_data(attributes_df, coffee_seller_df)
         
-        # Aggregate by different levels
-        country_data = self.aggregate_by_country(merged_df)
-        region_data = self.aggregate_by_region(merged_df)
-        seller_data = self.aggregate_by_seller(merged_df)
-        
-        # Prepare different formats
-        contingency_df = self.prepare_contingency_format(country_data, region_data, seller_data)
-        tfidf_data = self.prepare_tfidf_format(country_data, region_data, seller_data)
-        hierarchical_data = self.prepare_hierarchical_format(country_data, region_data, seller_data)
-        
         # Prepare cross-feature flat format
         cross_feature_df = self.prepare_cross_feature_format(merged_df)
 
         return {
             'raw_merged_df': merged_df,
             'cross_feature_df': cross_feature_df,
-            'country_aggregated': country_data,
-            'region_aggregated': region_data,
-            'seller_aggregated': seller_data,
-            'contingency_format': contingency_df,
-            'tfidf_format': tfidf_data,
-            'hierarchical_format': hierarchical_data,
             'extraction_timestamp': datetime.now().isoformat()
         }
 
 
-# Convenience function for caching
-@st.cache_data(ttl=3600)
+# Used only by the offline cache generator; the live site reads the cache file, not the database.
 def get_analytics_data():
-    """Get all analytics data with caching"""
+    """Extract and prepare all analytics data"""
     extractor = CoffeeDataExtractor()
     return extractor.extract_and_prepare_all_data()

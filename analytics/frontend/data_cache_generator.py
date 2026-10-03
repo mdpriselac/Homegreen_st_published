@@ -17,7 +17,10 @@ import logging
 from collections import defaultdict
 import math
 
-from analytics.processing.integrated_analysis import get_integrated_analysis, IntegratedFlavorAnalyzer
+from analytics.db_access.coffee_data_extractor import get_analytics_data
+from analytics.processing.distinctiveness_cache import (
+    build_distinctiveness_components, prepare_distinctiveness_input)
+from analytics.processing.data_hygiene import headline_counts, is_placeholder
 from analytics.processing.turnover_analysis import SellerTurnoverAnalyzer
 from analytics.processing.price_analysis import PriceAnalyzer
 from analytics.processing.cooccurrence_analysis import FlavorCooccurrenceAnalyzer
@@ -44,21 +47,32 @@ class FrontendDataCacheGenerator:
         
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.all_results = None
-        self.analyzer = None
     
     def _sanitize_for_json(self, obj: Any) -> Any:
-        """Recursively sanitize objects for JSON serialization, handling Infinity and NaN"""
+        """Recursively convert objects to native JSON-safe types.
+
+        numpy bool/int/float become Python bool/int/float (so json writes real
+        booleans/numbers rather than str() fallbacks); NaN/Inf/NA become None.
+        """
         if isinstance(obj, dict):
             return {k: self._sanitize_for_json(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
+        elif isinstance(obj, pd.DataFrame):
+            return self._sanitize_for_json(obj.to_dict('records'))
+        elif isinstance(obj, (list, tuple)):
             return [self._sanitize_for_json(item) for item in obj]
-        elif isinstance(obj, float):
-            if math.isnan(obj):
+        elif isinstance(obj, np.ndarray):
+            return [self._sanitize_for_json(item) for item in obj.tolist()]
+        elif isinstance(obj, (bool, np.bool_)):
+            return bool(obj)
+        elif isinstance(obj, (int, np.integer)):
+            return int(obj)
+        elif isinstance(obj, (float, np.floating)):
+            obj = float(obj)
+            if math.isnan(obj) or math.isinf(obj):
                 return None
-            elif math.isinf(obj):
-                return None  # or "Infinity" / "-Infinity" if you want to preserve the sign
-            else:
-                return obj
+            return obj
+        elif obj is None:
+            return None
         elif pd.isna(obj):
             return None
         else:
@@ -68,24 +82,28 @@ class FrontendDataCacheGenerator:
         """Generate complete frontend data cache"""
         logger.info("Starting frontend data cache generation...")
         
-        # Load analysis results
-        logger.info("Loading integrated analysis results...")
-        self.all_results = get_integrated_analysis()
-        self.analyzer = IntegratedFlavorAnalyzer()
-        
-        if not self.all_results or 'data' not in self.all_results:
-            raise ValueError("Analysis results not available")
-        
+        # Load the per-coffee data (single source for every analysis)
+        logger.info("Loading analytics data...")
+        self.all_results = {'data': get_analytics_data()}
+
+        if not self.all_results['data']:
+            raise ValueError("Analytics data not available")
+
+        # Per-coffee distinctiveness analysis
+        self.distinctiveness = self._compute_distinctiveness()
+        # Survival (lifespan) analysis: also feeds the lifespan rankings
+        self._turnover = self._generate_turnover_cache()
+
         # Generate all cache components
         cache_data = {
             'metadata': self._generate_metadata(),
             'overview_data': self._generate_overview_cache(),
-            'unit_profiles': self._generate_unit_profiles_cache(),
             'flavor_hierarchies': self._generate_flavor_hierarchies_cache(),
             'rankings_data': self._generate_rankings_cache(),
-            'comparison_matrices': self._generate_comparison_cache(),
-            'export_ready_data': self._generate_export_cache(),
-            'turnover_data': self._generate_turnover_cache(),
+            'distinctiveness_meta': self.distinctiveness['meta'],
+            'distinctiveness_profiles': self.distinctiveness['profiles'],
+            'distinctiveness_by_flavor': self.distinctiveness['by_flavor'],
+            'turnover_data': self._turnover,
             'price_analysis_data': self._generate_price_analysis_cache(),
             'cooccurrence_data': self._generate_cooccurrence_cache(),
             'cross_feature_data': self._generate_cross_feature_cache(),
@@ -99,17 +117,25 @@ class FrontendDataCacheGenerator:
         logger.info("Frontend data cache generation completed successfully!")
         return cache_data
     
+    def _compute_distinctiveness(self) -> Dict[str, Any]:
+        """Per-coffee distinctiveness components (see distinctiveness_cache)"""
+        logger.info("Computing per-coffee distinctiveness...")
+        cross_feature_df = self.all_results['data'].get('cross_feature_df')
+        if cross_feature_df is None or cross_feature_df.empty:
+            raise ValueError("No per-coffee data available for distinctiveness analysis")
+        return build_distinctiveness_components(prepare_distinctiveness_input(cross_feature_df))
+
     def _generate_metadata(self) -> Dict[str, Any]:
         """Generate cache metadata"""
         return {
             'generated_at': datetime.now().isoformat(),
-            'version': '1.0',
-            'analysis_components': list(self.all_results.keys()),
+            'version': '2.0',
+            'analysis_components': ['distinctiveness', 'price', 'cooccurrence',
+                                    'cross_feature', 'interaction', 'turnover'],
             'total_units': {
-                'countries': len(self.all_results.get('data', {}).get('country_aggregated', {})),
-                'regions': len(self.all_results.get('data', {}).get('region_aggregated', {})),
-                'sellers': len(self.all_results.get('data', {}).get('seller_aggregated', {}))
-            }
+                t: self.distinctiveness['meta']['by_unit_type'][t]['n_units']['genus']
+                for t in ('country', 'region', 'seller')
+            },
         }
     
     def _generate_overview_cache(self) -> Dict[str, Any]:
@@ -124,226 +150,10 @@ class FrontendDataCacheGenerator:
         # Geographic distribution data
         overview_cache['geographic_data'] = self._extract_geographic_data()
         
-        # Key findings (from summary if available)
-        if 'summary' in self.all_results:
-            overview_cache['key_findings'] = self.all_results['summary'].get('key_findings', [])
-            overview_cache['top_units'] = self.all_results['summary'].get('top_distinctive_units', [])
-        else:
-            overview_cache['key_findings'] = []
-            overview_cache['top_units'] = []
-        
-        # Analysis progress indicators
-        overview_cache['analysis_progress'] = {
-            'statistical_complete': 'statistical' in self.all_results,
-            'tfidf_complete': 'tfidf' in self.all_results,
-            'hierarchical_complete': 'hierarchical' in self.all_results,
-            'consensus_complete': 'consensus' in self.all_results,
-            'summary_complete': 'summary' in self.all_results
-        }
+        # Key findings (per-coffee distinctiveness; also in distinctiveness_meta)
+        overview_cache['key_findings'] = self.distinctiveness['meta']['key_findings']
         
         return overview_cache
-    
-    def _generate_unit_profiles_cache(self) -> Dict[str, Dict[str, Any]]:
-        """Generate comprehensive unit profiles for all units"""
-        logger.info("Generating unit profiles cache...")
-        
-        unit_profiles = {}
-        
-        # Get all available units
-        all_units = []
-        
-        if 'country_aggregated' in self.all_results.get('data', {}):
-            for country in self.all_results['data']['country_aggregated'].keys():
-                all_units.append((country, 'country'))
-        
-        if 'region_aggregated' in self.all_results.get('data', {}):
-            for region in self.all_results['data']['region_aggregated'].keys():
-                all_units.append((region, 'region'))
-        
-        if 'seller_aggregated' in self.all_results.get('data', {}):
-            for seller in self.all_results['data']['seller_aggregated'].keys():
-                all_units.append((seller, 'seller'))
-        
-        logger.info(f"Processing {len(all_units)} units...")
-        
-        # Generate profile for each unit
-        for i, (unit_name, unit_type) in enumerate(all_units):
-            if i % 10 == 0:
-                logger.info(f"Processing unit {i+1}/{len(all_units)}: {unit_name}")
-            
-            try:
-                profile = self._generate_unit_profile(unit_name, unit_type)
-                unit_profiles[f"{unit_type}_{unit_name}"] = profile
-            except Exception as e:
-                logger.warning(f"Failed to generate profile for {unit_name} ({unit_type}): {e}")
-                # Create minimal profile
-                unit_profiles[f"{unit_type}_{unit_name}"] = {
-                    'unit_name': unit_name,
-                    'unit_type': unit_type,
-                    'overview': {'total_coffees': 0, 'error': str(e)},
-                    'statistical_findings': {},
-                    'tfidf_findings': {},
-                    'hierarchical_findings': {},
-                    'consensus_findings': {'strong': [], 'moderate': []},
-                    'recommendations': []
-                }
-        
-        return unit_profiles
-    
-    def _generate_unit_profile(self, unit_name: str, unit_type: str) -> Dict[str, Any]:
-        """Generate comprehensive profile for a single unit"""
-        profile = {
-            'unit_name': unit_name,
-            'unit_type': unit_type,
-            'overview': {},
-            'statistical_findings': {},
-            'tfidf_findings': {},
-            'hierarchical_findings': {},
-            'consensus_findings': {'strong': [], 'moderate': []},
-            'recommendations': []
-        }
-        
-        # Extract overview data from aggregated data
-        aggregated_key = f"{unit_type}_aggregated"
-        if aggregated_key in self.all_results.get('data', {}):
-            unit_data = self.all_results['data'][aggregated_key].get(unit_name, {})
-            metadata = unit_data.get('metadata', {})
-            
-            profile['overview'] = {
-                'total_coffees': metadata.get('total_coffees', 0),
-                'total_flavor_instances': metadata.get('total_flavor_instances', 0),
-                'unique_flavor_families': list(metadata.get('unique_flavor_families', [])),
-                'unique_sellers': list(metadata.get('unique_sellers', [])),
-                'unique_subregions': list(metadata.get('unique_subregions', [])),
-                'flavor_parse_rate': metadata.get('flavor_parse_rate', 0.0)
-            }
-        
-        # Extract statistical findings
-        if 'statistical' in self.all_results:
-            profile['statistical_findings'] = self._extract_statistical_findings(unit_name, unit_type)
-        
-        # Extract TF-IDF findings  
-        if 'tfidf' in self.all_results:
-            profile['tfidf_findings'] = self._extract_tfidf_findings(unit_name, unit_type)
-        
-        # Extract hierarchical findings
-        if 'hierarchical' in self.all_results:
-            profile['hierarchical_findings'] = self._extract_hierarchical_findings(unit_name, unit_type)
-        
-        # Extract consensus findings
-        if 'consensus' in self.all_results:
-            profile['consensus_findings'] = self._extract_consensus_findings(unit_name, unit_type)
-        
-        # Generate recommendations
-        profile['recommendations'] = self._generate_recommendations(profile)
-        
-        return profile
-    
-    def _extract_statistical_findings(self, unit_name: str, unit_type: str) -> Dict[str, List]:
-        """Extract statistical significance findings for a unit"""
-        findings = {'family': [], 'genus': [], 'species': []}
-        
-        stat_results = self.all_results.get('statistical', {})
-        
-        for taxonomy_level in ['family', 'genus', 'species']:
-            key = f"{unit_type}_{taxonomy_level}_significant"
-            if key in stat_results:
-                df = stat_results[key]
-                if not df.empty:
-                    unit_df = df[df['unit_name'] == unit_name]
-                    if not unit_df.empty:
-                        findings[taxonomy_level] = self._sanitize_for_json(unit_df.to_dict('records'))
-        
-        return findings
-    
-    def _extract_tfidf_findings(self, unit_name: str, unit_type: str) -> Dict[str, Dict]:
-        """Extract TF-IDF distinctiveness findings for a unit"""
-        findings = {'family': {}, 'genus': {}, 'species': {}}
-        
-        tfidf_results = self.all_results.get('tfidf', {})
-        
-        for taxonomy_level in ['family', 'genus', 'species']:
-            # Map unit types to the correct plural forms used in TF-IDF results
-            unit_type_plurals = {'country': 'countries', 'region': 'regions', 'seller': 'sellers'}
-            plural_type = unit_type_plurals.get(unit_type, f"{unit_type}s")
-            key = f"{taxonomy_level}_{plural_type}_scores"
-            if key in tfidf_results:
-                df = tfidf_results[key]
-                if not df.empty:
-                    unit_df = df[df['unit_name'] == unit_name]
-                    if not unit_df.empty:
-                        top_flavors = self._sanitize_for_json(unit_df.nlargest(10, 'tfidf_score').to_dict('records'))
-                        findings[taxonomy_level] = {
-                            'top_flavors': top_flavors,
-                            'total_unique_flavors': len(unit_df)
-                        }
-        
-        return findings
-    
-    def _extract_hierarchical_findings(self, unit_name: str, unit_type: str) -> Dict[str, Any]:
-        """Extract hierarchical analysis findings for a unit"""
-        findings = {
-            'cascade_patterns': {},
-            'distinctiveness_types': {},
-            'summary_metrics': {}
-        }
-        
-        hier_results = self.all_results.get('hierarchical', {})
-        if 'profiles' in hier_results and unit_name in hier_results['profiles']:
-            unit_profile = hier_results['profiles'][unit_name]
-            findings.update(unit_profile)
-        
-        return findings
-    
-    def _extract_consensus_findings(self, unit_name: str, unit_type: str) -> Dict[str, List]:
-        """Extract cross-method consensus findings for a unit"""
-        findings = {'strong': [], 'moderate': []}
-        
-        consensus_results = self.all_results.get('consensus', {})
-        
-        # Look for consensus findings for this unit
-        for consensus_type in ['strong_consensus', 'moderate_consensus']:
-            if consensus_type in consensus_results:
-                for key, unit_findings in consensus_results[consensus_type].items():
-                    if unit_type in key:
-                        unit_consensus = [f for f in unit_findings if f['unit'] == unit_name]
-                        if consensus_type == 'strong_consensus':
-                            findings['strong'].extend(unit_consensus)
-                        else:
-                            findings['moderate'].extend(unit_consensus)
-        
-        return findings
-    
-    def _generate_recommendations(self, profile: Dict[str, Any]) -> List[str]:
-        """Generate actionable recommendations based on profile"""
-        recommendations = []
-        
-        overview = profile.get('overview', {})
-        total_coffees = overview.get('total_coffees', 0)
-        
-        # Data quality recommendations
-        if total_coffees < 5:
-            recommendations.append("⚠️ Low sample size - results may not be statistically reliable")
-        elif total_coffees < 20:
-            recommendations.append("⚠️ Moderate sample size - interpret results with caution")
-        
-        # Statistical significance recommendations
-        stat_findings = profile.get('statistical_findings', {})
-        significant_count = sum(len(findings) for findings in stat_findings.values())
-        
-        if significant_count == 0:
-            recommendations.append("ℹ️ No statistically significant flavor patterns found")
-        elif significant_count > 10:
-            recommendations.append("✨ Rich flavor profile with many distinctive characteristics")
-        
-        # TF-IDF distinctiveness recommendations
-        tfidf_findings = profile.get('tfidf_findings', {})
-        distinctive_count = sum(len(findings.get('top_flavors', [])) for findings in tfidf_findings.values())
-        
-        if distinctive_count > 15:
-            recommendations.append("🎯 Highly distinctive flavor profile - great for specialty marketing")
-        
-        return recommendations
     
     def _generate_flavor_hierarchies_cache(self) -> Dict[str, Any]:
         """Generate flavor hierarchy data for By Flavor tab"""
@@ -388,68 +198,11 @@ class FrontendDataCacheGenerator:
             'all_species': sorted(list(hierarchies['all_species']))
         }
     
-    def _get_top_flavors_for_entity(self, entity_name: str, unit_type: str, n: int = 3) -> List[str]:
-        """Look up top N TF-IDF family-level flavors for an entity"""
-        tfidf_results = self.all_results.get('tfidf', {})
-        unit_type_plurals = {'country': 'countries', 'region': 'regions', 'seller': 'sellers'}
-        plural = unit_type_plurals.get(unit_type, f"{unit_type}s")
-        key = f"family_{plural}_scores"
-        df = tfidf_results.get(key)
-        if df is None or not isinstance(df, pd.DataFrame) or df.empty:
-            return []
-        unit_df = df[df['unit_name'] == entity_name]
-        if unit_df.empty:
-            return []
-        top = unit_df.nlargest(n, 'tfidf_score')
-        return top['flavor'].tolist()
-
     def _generate_rankings_cache(self) -> Dict[str, Any]:
         """Generate rankings data for Rankings tab"""
         logger.info("Generating rankings cache...")
 
         rankings = {}
-
-        # Most Distinctive Overall
-        if 'summary' in self.all_results and 'top_distinctive_units' in self.all_results['summary']:
-            rankings['most_distinctive'] = self.all_results['summary']['top_distinctive_units']
-        else:
-            rankings['most_distinctive'] = []
-
-        # Enrich most_distinctive with top flavors
-        for entry in rankings['most_distinctive']:
-            name = entry.get('unit') or entry.get('entity_name', '')
-            utype = entry.get('type') or entry.get('unit_type', 'country')
-            entry['top_flavors'] = self._get_top_flavors_for_entity(name, utype)
-
-        # Most Specialized (from hierarchical analysis)
-        rankings['most_specialized'] = []
-        if 'hierarchical' in self.all_results and 'profiles' in self.all_results['hierarchical']:
-            for unit_name, profile in self.all_results['hierarchical']['profiles'].items():
-                top_flavors = self._get_top_flavors_for_entity(
-                    unit_name, profile.get('unit_type', 'unknown')
-                )
-                rankings['most_specialized'].append({
-                    'entity_name': unit_name,
-                    'unit_type': profile.get('unit_type', 'unknown'),
-                    'score': profile.get('summary_metrics', {}).get('concentration_index', 0),
-                    'total_coffees': profile.get('total_coffees', 0),
-                    'top_flavors': top_flavors,
-                })
-
-        # Most Diverse (from hierarchical analysis)
-        rankings['most_diverse'] = []
-        if 'hierarchical' in self.all_results and 'profiles' in self.all_results['hierarchical']:
-            for unit_name, profile in self.all_results['hierarchical']['profiles'].items():
-                top_flavors = self._get_top_flavors_for_entity(
-                    unit_name, profile.get('unit_type', 'unknown')
-                )
-                rankings['most_diverse'].append({
-                    'entity_name': unit_name,
-                    'unit_type': profile.get('unit_type', 'unknown'),
-                    'score': profile.get('summary_metrics', {}).get('flavor_diversity', 0),
-                    'total_coffees': profile.get('total_coffees', 0),
-                    'top_flavors': top_flavors,
-                })
 
         # Best Value origins (lowest median price with enough data)
         rankings['best_value'] = []
@@ -458,12 +211,12 @@ class FrontendDataCacheGenerator:
         cross_feature_df = self.all_results['data'].get('cross_feature_df')
         if cross_feature_df is not None and not cross_feature_df.empty:
             priced = cross_feature_df[
-                cross_feature_df['avg_price'].notna() &
-                (cross_feature_df['avg_price'] > 0) &
+                cross_feature_df['price_per_lb'].notna() &
+                (cross_feature_df['price_per_lb'] > 0) &
                 cross_feature_df['country'].notna()
             ]
             if not priced.empty:
-                country_price = priced.groupby('country')['avg_price'].agg(
+                country_price = priced.groupby('country')['price_per_lb'].agg(
                     ['median', 'mean', 'count']
                 ).reset_index()
                 country_price = country_price[country_price['count'] >= 5]
@@ -488,110 +241,37 @@ class FrontendDataCacheGenerator:
                         'total_coffees': int(row['count']),
                     })
 
-        # Fastest Moving origins (shortest median lifespan for expired coffees)
+        # Fastest Moving / Longest Lasting: Kaplan-Meier median lifespans (coffees still
+        # listed count as "at least this long"), per country and per seller. Groups whose
+        # median is not reached (fewer than half have left) cannot be ranked.
         rankings['fastest_moving'] = []
         rankings['longest_lasting'] = []
-        if cross_feature_df is not None and not cross_feature_df.empty:
-            expired = cross_feature_df[
-                (cross_feature_df['is_active'] == False) &
-                cross_feature_df['lifespan_days'].notna() &
-                cross_feature_df['country'].notna()
-            ]
-            if not expired.empty:
-                country_life = expired.groupby('country')['lifespan_days'].agg(
-                    ['median', 'mean', 'count']
-                ).reset_index()
-                country_life = country_life[country_life['count'] >= 5]
-                # Fastest moving = shortest median lifespan
-                fastest = country_life.sort_values('median', ascending=True)
-                for _, row in fastest.iterrows():
-                    rankings['fastest_moving'].append({
-                        'entity_name': row['country'],
-                        'unit_type': 'country',
-                        'score': float(row['median']),
-                        'mean_lifespan': float(row['mean']),
-                        'total_coffees': int(row['count']),
-                    })
-                # Longest lasting
-                longest = country_life.sort_values('median', ascending=False)
-                for _, row in longest.iterrows():
-                    rankings['longest_lasting'].append({
-                        'entity_name': row['country'],
-                        'unit_type': 'country',
-                        'score': float(row['median']),
-                        'mean_lifespan': float(row['mean']),
-                        'total_coffees': int(row['count']),
-                    })
+        turnover = getattr(self, '_turnover', None) or {}
+        entries = []
+        for unit_type, section, rows_key, name_key in (
+                ('country', 'by_origin', 'countries', 'country'),
+                ('seller', 'by_seller', 'sellers', 'seller')):
+            for row in (turnover.get(section) or {}).get(rows_key, []):
+                if row.get('median_lifespan') is None:
+                    continue
+                entries.append({
+                    'entity_name': row[name_key],
+                    'unit_type': unit_type,
+                    'score': float(row['median_lifespan']),
+                    'q25_lifespan': row.get('q25_lifespan'),
+                    'q75_lifespan': row.get('q75_lifespan'),
+                    'total_coffees': int(row.get('count', 0)),
+                    'events': row.get('events'),
+                    'censored': row.get('censored'),
+                })
+        rankings['fastest_moving'] = sorted(entries, key=lambda e: e['score'])
+        rankings['longest_lasting'] = sorted(entries, key=lambda e: e['score'], reverse=True)
+
+        # New per-unit-type rankings from the per-coffee distinctiveness analysis
+        rankings['distinctive_profile'] = self.distinctiveness['rankings']['distinctive_profile']
+        rankings['varied_profile'] = self.distinctiveness['rankings']['varied_profile']
 
         return self._sanitize_for_json(rankings)
-    
-    def _generate_comparison_cache(self) -> Dict[str, Any]:
-        """Generate comparison matrices for Compare tab"""
-        logger.info("Generating comparison cache...")
-        
-        comparison_data = {}
-        
-        # Generate similarity matrices if TF-IDF analyzer is available
-        if 'tfidf' in self.all_results and 'analyzer' in self.all_results['tfidf']:
-            try:
-                analyzer = self.all_results['tfidf']['analyzer']
-                
-                # Use plural forms as expected by the TF-IDF analyzer
-                entity_type_mapping = {'country': 'countries', 'region': 'regions', 'seller': 'sellers'}
-                
-                for entity_type in ['country', 'region', 'seller']:
-                    for taxonomy_level in ['family', 'genus', 'species']:
-                        key = f"{taxonomy_level}_{entity_type}_similarity"
-                        # Use the plural form for the analyzer
-                        analyzer_entity_type = entity_type_mapping[entity_type]
-                        similarity_matrix = analyzer.calculate_similarity_matrix(taxonomy_level, analyzer_entity_type)
-                        
-                        if similarity_matrix is not None:
-                            # Handle both DataFrame and numpy array cases
-                            if hasattr(similarity_matrix, 'values'):
-                                # It's a DataFrame
-                                matrix_values = similarity_matrix.values.tolist()
-                                labels = list(similarity_matrix.index)
-                            else:
-                                # It's a numpy array
-                                matrix_values = similarity_matrix.tolist()
-                                labels = []
-                            
-                            comparison_data[key] = {
-                                'matrix': matrix_values,
-                                'labels': labels,
-                                'description': f"Flavor similarity between {entity_type}s at {taxonomy_level} level"
-                            }
-            except Exception as e:
-                logger.warning(f"Failed to generate similarity matrices: {e}")
-        
-        return comparison_data
-    
-    def _generate_export_cache(self) -> Dict[str, Any]:
-        """Generate export-ready data formats"""
-        logger.info("Generating export cache...")
-        
-        export_data = {
-            'statistical_summary': [],
-            'tfidf_summary': [],
-            'consensus_summary': []
-        }
-        
-        # Statistical findings summary
-        if 'statistical' in self.all_results:
-            for key, df in self.all_results['statistical'].items():
-                if isinstance(df, pd.DataFrame) and not df.empty:
-                    summary = self._sanitize_for_json(df.to_dict('records'))
-                    export_data['statistical_summary'].extend(summary)
-        
-        # TF-IDF findings summary
-        if 'tfidf' in self.all_results:
-            for key, df in self.all_results['tfidf'].items():
-                if isinstance(df, pd.DataFrame) and not df.empty:
-                    summary = self._sanitize_for_json(df.to_dict('records'))
-                    export_data['tfidf_summary'].extend(summary)
-        
-        return export_data
     
     def _generate_turnover_cache(self) -> Dict[str, Any]:
         """Generate turnover/lifespan analysis cache"""
@@ -685,21 +365,25 @@ class FrontendDataCacheGenerator:
             if total == 0:
                 return {'has_data': False}
 
+            def present(series):
+                return ~series.map(is_placeholder)
+
             completeness = {
                 'has_data': True,
                 'total_coffees': total,
                 'fields': {
                     'country': {
-                        'count': int(cross_feature_df['country'].notna().sum()),
-                        'rate': float(cross_feature_df['country'].notna().mean()),
+                        'count': int(present(cross_feature_df['country']).sum()),
+                        'rate': float(present(cross_feature_df['country']).mean()),
                     },
+                    # region = country+subregion known ("UNKNOWN" counts as missing)
                     'region': {
-                        'count': int(cross_feature_df['region'].notna().sum()),
-                        'rate': float(cross_feature_df['region'].notna().mean()),
+                        'count': int(present(cross_feature_df['region']).sum()),
+                        'rate': float(present(cross_feature_df['region']).mean()),
                     },
                     'process_type': {
-                        'count': int(cross_feature_df['has_process'].sum()),
-                        'rate': float(cross_feature_df['has_process'].mean()),
+                        'count': int(present(cross_feature_df['process_type']).sum()),
+                        'rate': float(present(cross_feature_df['process_type']).mean()),
                     },
                     'varietal': {
                         'count': int(cross_feature_df['has_varietal'].sum()),
@@ -731,50 +415,47 @@ class FrontendDataCacheGenerator:
         if 'data' in self.all_results and 'raw_merged_df' in self.all_results['data']:
             df = self.all_results['data']['raw_merged_df']
             
-            stats = {
-                'total_coffees': len(df),
-                'countries_analyzed': df['country_final'].nunique() if 'country_final' in df.columns else 0,
-                'regions_analyzed': df['subregion_final'].nunique() if 'subregion_final' in df.columns else 0,
-                'sellers_analyzed': df['seller_name'].nunique() if 'seller_name' in df.columns else 0,
-                'flavor_parse_rate': df['has_flavors'].mean() if 'has_flavors' in df.columns else 0.0
-            }
+            # One definition of the headline numbers: regions are country+subregion
+            # keys (what the sidebar lists); missing values never count.
+            counts = headline_counts(df)
+            stats = {k: counts[k] for k in (
+                'total_coffees', 'countries_analyzed', 'regions_analyzed', 'sellers_analyzed')}
+            stats['unique_flavor_families'] = counts['unique_flavor_families']
         
         return stats
     
     def _extract_geographic_data(self) -> List[Dict[str, Any]]:
-        """Extract geographic distribution data"""
+        """Per-country coffee counts, from the per-coffee frame"""
+        cf = self.all_results.get('data', {}).get('cross_feature_df')
+        if cf is None or cf.empty:
+            return []
+
+        def present(series):
+            return ~series.map(is_placeholder)
+
         geo_data = []
-        
-        if 'country_aggregated' in self.all_results.get('data', {}):
-            country_data = self.all_results['data']['country_aggregated']
-            
-            for country, data in country_data.items():
-                metadata = data.get('metadata', {})
-                geo_data.append({
-                    'country': country,
-                    'total_coffees': metadata.get('total_coffees', 0),
-                    'flavor_families': len(metadata.get('unique_flavor_families', [])),
-                    'sellers': len(metadata.get('unique_sellers', [])),
-                    'regions': len(metadata.get('unique_subregions', []))
-                })
-        
+        for country, g in cf[present(cf['country'])].groupby('country'):
+            families = {f for fl in g['flavor_families'] if isinstance(fl, list) for f in fl}
+            geo_data.append({
+                'country': country,
+                'total_coffees': int(len(g)),
+                'flavor_families': len(families),
+                'sellers': int(g.loc[present(g['seller']), 'seller'].nunique()),
+                'regions': int(g.loc[present(g['region']), 'region'].nunique()),
+            })
         return geo_data
     
     def _save_cache_data(self, cache_data: Dict[str, Any]):
         """Save cache data to files"""
         logger.info("Saving cache data to files...")
+        # Ensure numpy bool/int/float become real JSON types (not str() fallbacks)
+        cache_data = self._sanitize_for_json(cache_data)
         
-        # Save main cache file
+        # The loader reads only frontend_cache.json (compact JSON: it is parsed, not read)
         main_cache_file = self.cache_dir / "frontend_cache.json"
         with open(main_cache_file, 'w') as f:
-            json.dump(cache_data, f, indent=2, default=str)
-        
-        # Save individual components for partial loading
-        for component_name, component_data in cache_data.items():
-            component_file = self.cache_dir / f"{component_name}.json"
-            with open(component_file, 'w') as f:
-                json.dump(component_data, f, indent=2, default=str)
-        
+            json.dump(cache_data, f, separators=(',', ':'), default=str)
+
         logger.info(f"Cache data saved to {self.cache_dir}")
 
 
@@ -785,7 +466,7 @@ def main():
     
     print("\n✅ Frontend data cache generation completed!")
     print(f"📁 Cache saved to: {generator.cache_dir}")
-    print(f"📊 Generated profiles for {len(cache_data['unit_profiles'])} units")
+    print(f"📊 Generated profiles for {len(cache_data['distinctiveness_profiles'])} units")
     print(f"🫘 Cached {len(cache_data['flavor_hierarchies']['families'])} flavor families")
     print(f"🏆 Generated {len(cache_data['rankings_data'])} ranking categories")
 

@@ -4,6 +4,7 @@ Cached Data Loader for Frontend
 Fast loading of pre-computed analysis results for the frontend interface.
 """
 
+import copy
 import json
 import pandas as pd
 import os
@@ -13,10 +14,28 @@ import streamlit as st
 from datetime import datetime, timedelta
 
 
+@st.cache_resource(ttl=3600, show_spinner=False)
+def _read_cache_file(path: str, mtime: float) -> Dict[str, Any]:
+    """Parse the cache JSON once per file version (keyed on mtime).
+
+    Raises on failure; Streamlit does not memoize exceptions, so a bad or
+    missing file is retried on the next call.
+    """
+    with open(path, 'r') as f:
+        return json.load(f)
+
+
 class CachedDataLoader:
     """Load pre-computed frontend data from cache"""
     
-    def __init__(self, cache_dir: str = "analytics/data/frontend_cache"):
+    DEFAULT_CACHE_DIR = "analytics/data/frontend_cache"
+
+    def __init__(self, cache_dir: Optional[str] = None):
+        # Precedence: explicit argument, then the ANALYTICS_CACHE_DIR environment
+        # variable (absolute path, e.g. to preview a cache generated elsewhere),
+        # then the default relative to the project root.
+        if cache_dir is None:
+            cache_dir = os.environ.get('ANALYTICS_CACHE_DIR') or self.DEFAULT_CACHE_DIR
         # Resolve path relative to project root
         if not os.path.isabs(cache_dir):
             # Get the project root (where this script is running from)
@@ -28,108 +47,115 @@ class CachedDataLoader:
         self._cache = {}
         self._cache_loaded = False
     
-    @st.cache_data(ttl=3600)  # Cache for 1 hour
     def load_overview_data(_self) -> Dict[str, Any]:
         """Load overview tab data"""
         return _self._load_component('overview_data')
     
-    @st.cache_data(ttl=3600)
     def load_unit_profile(_self, unit_name: str, unit_type: str) -> Optional[Dict[str, Any]]:
         """Load comprehensive profile for a specific unit"""
-        unit_profiles = _self._load_component('unit_profiles')
+        unit_profiles = _self._peek_component('distinctiveness_profiles')
         profile_key = f"{unit_type}_{unit_name}"
-        return unit_profiles.get(profile_key)
+        return copy.deepcopy(unit_profiles.get(profile_key))
     
-    @st.cache_data(ttl=3600)
     def load_flavor_hierarchies(_self) -> Dict[str, Any]:
         """Load flavor hierarchy data for By Flavor tab"""
         return _self._load_component('flavor_hierarchies')
     
-    @st.cache_data(ttl=3600)
     def load_rankings_data(_self) -> Dict[str, Any]:
         """Load rankings data for Rankings tab"""
         return _self._load_component('rankings_data')
     
-    @st.cache_data(ttl=3600)
-    def load_comparison_matrices(_self) -> Dict[str, Any]:
-        """Load comparison matrices for Compare tab"""
-        return _self._load_component('comparison_matrices')
-    
-    @st.cache_data(ttl=3600)
     def get_available_units(_self, unit_type: str) -> List[str]:
         """Get list of available units for the specified type"""
-        unit_profiles = _self._load_component('unit_profiles')
-        
+        unit_profiles = _self._peek_component('distinctiveness_profiles')  # read-only, result is new
+
         units = []
         for profile_key, profile in unit_profiles.items():
             if profile.get('unit_type') == unit_type:
                 units.append(profile.get('unit_name'))
-        
+
         return sorted(units)
-    
-    @st.cache_data(ttl=3600)
+
+    def get_unit_sizes(_self, unit_type: str) -> Dict[str, int]:
+        """{unit_name: n_coffees} for the available units of a type (for sensible picker defaults)"""
+        profiles = _self._peek_component('distinctiveness_profiles')
+        return {p.get('unit_name'): int(p.get('n_coffees') or 0)
+                for p in profiles.values() if p.get('unit_type') == unit_type}
+
+    def load_distinctiveness_meta(_self) -> Dict[str, Any]:
+        """Parameters, counts and key findings of the distinctiveness analysis"""
+        return _self._load_component('distinctiveness_meta')
+
+    def load_flavor_unit_rows(_self, unit_type: str, level: str, flavor: str) -> List[Dict[str, Any]]:
+        """All tested (unit, flavor) rows for one flavor, as dicts (read-only scan of
+        the shared by-flavor table; only the matching rows are copied)."""
+        table = _self._peek_component('distinctiveness_by_flavor').get(f"{unit_type}_{level}")
+        if not table or not table.get('rows'):
+            return []
+        cols = table['columns']
+        fi = cols.index('flavor')
+        return [dict(zip(cols, row)) for row in table['rows'] if row[fi] == flavor]
+
     def load_turnover_data(_self) -> Dict[str, Any]:
         """Load turnover/lifespan analysis data"""
         return _self._load_component('turnover_data')
 
-    @st.cache_data(ttl=3600)
     def load_price_analysis_data(_self) -> Dict[str, Any]:
         """Load price analysis data"""
         return _self._load_component('price_analysis_data')
 
-    @st.cache_data(ttl=3600)
     def load_cooccurrence_data(_self) -> Dict[str, Any]:
         """Load flavor co-occurrence analysis data"""
         return _self._load_component('cooccurrence_data')
 
-    @st.cache_data(ttl=3600)
     def load_cross_feature_data(_self) -> Dict[str, Any]:
         """Load cross-feature analysis data"""
         return _self._load_component('cross_feature_data')
 
-    @st.cache_data(ttl=3600)
     def load_interaction_data(_self) -> Dict[str, Any]:
         """Load interaction analysis data"""
         return _self._load_component('interaction_data')
 
-    @st.cache_data(ttl=3600)
     def load_data_completeness(_self) -> Dict[str, Any]:
         """Load data completeness/coverage rates"""
         return _self._load_component('data_completeness')
 
-    @st.cache_data(ttl=3600)
     def get_cache_metadata(_self) -> Dict[str, Any]:
         """Get cache metadata including generation time"""
         return _self._load_component('metadata')
     
-    def _load_component(self, component_name: str) -> Dict[str, Any]:
-        """Load a specific cache component"""
+    def _peek_component(self, component_name: str) -> Dict[str, Any]:
+        """Shared (uncopied) component. Internal read-only use only: the
+        parsed cache is shared across sessions via st.cache_resource."""
         if not self._cache_loaded:
             self._load_full_cache()
-        
         return self._cache.get(component_name, {})
+
+    def _load_component(self, component_name: str) -> Dict[str, Any]:
+        """Load a specific cache component as a private deep copy, so callers
+        may mutate it without affecting other sessions or later calls."""
+        return copy.deepcopy(self._peek_component(component_name))
     
     def _load_full_cache(self):
-        """Load full cache from file"""
+        """Load full cache from file.
+
+        On failure the error is shown and nothing is memoized (neither here nor
+        in Streamlit's cache), so the next call retries.
+        """
         main_cache_file = self.cache_dir / "frontend_cache.json"
-        
+
         if not main_cache_file.exists():
-            st.error(f"Frontend cache not found at {main_cache_file}")
-            if self.cache_dir.exists():
-                cache_files = list(self.cache_dir.glob("*.json"))
-                st.error(f"Files in cache dir: {[f.name for f in cache_files]}")
-            else:
-                st.error(f"Cache directory does not exist: {self.cache_dir.absolute()}")
+            st.error("Analytics data is temporarily unavailable (cache file not found).")
             return
-        
+
         try:
-            with open(main_cache_file, 'r') as f:
-                self._cache = json.load(f)
+            self._cache = _read_cache_file(str(main_cache_file), main_cache_file.stat().st_mtime)
             self._cache_loaded = True
-            
         except Exception as e:
-            st.error(f"Failed to load frontend cache: {e}")
-    
+            self._cache = {}
+            self._cache_loaded = False
+            st.error(f"Analytics data could not be loaded ({type(e).__name__}). Try reloading the cache from the sidebar.")
+
     def is_cache_fresh(self, max_age_hours: int = 24) -> bool:
         """Check if cache is fresh enough"""
         metadata = self.get_cache_metadata()
@@ -186,12 +212,10 @@ def get_cached_data_loader() -> CachedDataLoader:
 
 
 def clear_all_caches():
-    """Clear all caches - both the singleton loader and Streamlit's cache"""
+    """Drop the loaded cache so the next access re-reads the file from disk"""
     global _loader
-    # Reset the singleton loader
     _loader = None
-    # Clear Streamlit's cache_data
-    st.cache_data.clear()
+    _read_cache_file.clear()
 
 
 # Convenience functions for frontend use
@@ -218,6 +242,21 @@ def load_flavor_hierarchies() -> Dict[str, Any]:
 def load_rankings_data() -> Dict[str, Any]:
     """Load rankings data"""
     return get_cached_data_loader().load_rankings_data()
+
+
+def get_unit_sizes(unit_type: str) -> Dict[str, int]:
+    """Coffees per available unit"""
+    return get_cached_data_loader().get_unit_sizes(unit_type)
+
+
+def load_distinctiveness_meta() -> Dict[str, Any]:
+    """Load distinctiveness parameters and key findings"""
+    return get_cached_data_loader().load_distinctiveness_meta()
+
+
+def load_flavor_unit_rows(unit_type: str, level: str, flavor: str) -> List[Dict[str, Any]]:
+    """Tested (unit, flavor) rows for one flavor"""
+    return get_cached_data_loader().load_flavor_unit_rows(unit_type, level, flavor)
 
 
 def load_turnover_data() -> Dict[str, Any]:
@@ -264,7 +303,7 @@ def show_cache_status_widget():
         
         if not status['exists']:
             st.error("❌ Cache not found")
-            st.info("Run cache generator to create data cache")
+            st.info("The analytics cache has not been generated yet.")
             return
         
         if status['fresh']:
@@ -285,12 +324,14 @@ def show_cache_status_widget():
         # Show unit counts
         total_units = status.get('total_units', {})
         if total_units:
-            st.caption("**Units cached:**")
-            for unit_type, count in total_units.items():
-                st.caption(f"• {unit_type.title()}: {count}")
+            from analytics.constants import unit_plural
+            from analytics.processing.distinctiveness import MIN_UNIT_COFFEES
+            parts = " · ".join(f"{count} {unit_plural(t) if count != 1 else t}"
+                               for t, count in total_units.items())
+            st.caption(f"**Profiles ({MIN_UNIT_COFFEES}+ coffees):** {parts}")
         
         # Refresh button
-        if st.button("🔄 Refresh Cache Info"):
-            # Clear cache to force reload
-            get_cached_data_loader()._cache_loaded = False
+        if st.button("🔄 Reload Cache"):
+            # Re-read the cache file from disk
+            clear_all_caches()
             st.rerun()

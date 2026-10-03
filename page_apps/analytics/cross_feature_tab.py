@@ -11,6 +11,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 from typing import Dict, Any, List
 
+from page_apps.analytics.common import (
+    CRAMERS_NOTE, EFFECT_METRIC_LABELS, ETA2_NOTE, collapsed_text, effect_metric_of, fmt_n, fmt_p, fmt_q,
+)
+
 
 def render_cross_feature_tab():
     """Render the Cross-Feature Explorer tab"""
@@ -55,8 +59,24 @@ def render_cross_feature_tab():
 # Discovery mode
 # --------------------------------------------------------------------------
 
+def _association_notes(row: Dict[str, Any]) -> str:
+    """Short per-row note: chi-square status, or flavors tested for mean-V rows."""
+    notes = []
+    status = row.get('test_status')
+    if status == 'monte_carlo':
+        notes.append("Monte Carlo p (2,000 simulations)")
+    elif status == 'collapsed':
+        notes.append("small categories combined")
+    coll = collapsed_text(row.get('collapsed'), None)
+    if coll and status in ('collapsed', 'monte_carlo'):
+        notes.append("categories merged into 'Other'")
+    if row.get('n_flavors_tested') is not None:
+        notes.append(f"{row['n_flavors_tested']} of {row.get('n_flavors_total', row['n_flavors_tested'])} flavors tested")
+    return "; ".join(notes)
+
+
 def _render_discovery(data: Dict[str, Any]):
-    """Show all feature-pair associations ranked by effect size"""
+    """Show all feature-pair associations, one chart per effect-size metric"""
     if not data:
         st.info("Cross-feature data not available. Please regenerate the analytics cache.")
         return
@@ -67,50 +87,62 @@ def _render_discovery(data: Dict[str, Any]):
         return
 
     st.subheader("Feature-Pair Association Strength")
-    st.write("All meaningful feature pairs, ranked by effect size:")
+    st.write("Each kind of test has its own effect-size scale, so they are charted separately "
+             "(effect sizes from different tests are not comparable with each other):")
 
     assoc_df = pd.DataFrame(associations)
+    assoc_df['metric'] = [effect_metric_of(r) for r in associations]
+    assoc_df['pair'] = assoc_df.apply(lambda r: f"{r['feature_a']} x {r['feature_b']}", axis=1)
 
-    fig = px.bar(
-        assoc_df,
-        x=assoc_df.apply(lambda r: f"{r['feature_a']} x {r['feature_b']}", axis=1),
-        y='effect_size',
-        color='test',
-        title="Association Strength Across Feature Pairs",
-        labels={'x': 'Feature Pair', 'effect_size': 'Effect Size', 'test': 'Test Used'},
-        text=assoc_df['effect_size'].apply(lambda x: f"{x:.3f}"),
-    )
-    fig.update_layout(xaxis_tickangle=45, showlegend=True)
-    st.plotly_chart(fig, use_container_width=True)
+    order = ['cramers_v', 'eta2_h', 'mean_cramers_v']
+    metrics = [m for m in order if m in set(assoc_df['metric'])] + \
+              [m for m in assoc_df['metric'].unique() if m not in order]
+    for metric in metrics:
+        sub = assoc_df[assoc_df['metric'] == metric].sort_values('effect_size', ascending=False)
+        label = EFFECT_METRIC_LABELS.get(metric, metric)
+        fig = px.bar(
+            sub, x='pair', y='effect_size',
+            title=f"Association strength: {label}",
+            labels={'pair': 'Feature Pair', 'effect_size': label},
+            text=sub['effect_size'].apply(lambda x: f"{x:.3f}"),
+        )
+        fig.update_layout(xaxis_tickangle=45, showlegend=False)
+        st.plotly_chart(fig, use_container_width=True)
 
-    display_df = assoc_df.copy()
-    display_df['Pair'] = display_df.apply(
-        lambda r: f"{r['feature_a']} x {r['feature_b']}", axis=1
-    )
-    display_cols = ['Pair', 'test', 'effect_size', 'effect_label', 'p_value',
-                    'is_significant', 'n_observations']
-    available = [c for c in display_cols if c in display_df.columns]
-    display_df = display_df[available].rename(columns={
-        'test': 'Test',
-        'effect_size': 'Effect Size',
-        'effect_label': 'Metric',
-        'p_value': 'P-Value',
-        'is_significant': 'Significant?',
-        'n_observations': 'N',
+    table = pd.DataFrame({
+        'Pair': assoc_df['pair'],
+        'Test': assoc_df['test'],
+        'Effect Size': assoc_df['effect_size'],
+        'Metric': assoc_df['metric'].map(lambda m: EFFECT_METRIC_LABELS.get(m, m)),
+        'p': [fmt_p(r.get('p_value'), r.get('test_status'),
+                    2000 if r.get('test_status') == 'monte_carlo' else None) for r in associations],
+        'q-value': [fmt_q(r.get('q_value')) for r in associations],
+        'Significant?': [("Yes" if r.get('is_significant') else "No") if r.get('is_significant') is not None
+                         else "n/a" for r in associations],
+        'N': [fmt_n(r.get('n_observations', '')) if r.get('n_observations') is not None else '' for r in associations],
+        'Notes': [_association_notes(r) for r in associations],
     })
-    st.dataframe(display_df, hide_index=True)
+    st.dataframe(table, hide_index=True)
+
+    insufficient = data.get('insufficient_association_tests') or []
+    if insufficient:
+        st.info("Not enough data to test: " + "; ".join(
+            f"{t.get('feature_a')} x {t.get('feature_b')}" for t in insufficient) + ".")
 
     st.info(
         "**Why different tests?** The system automatically picks the right test for each data type:  \n"
         "- **Chi-square test** → used when both features are categories (e.g., country × process). "
         "It checks whether the combination of categories occurs more or less often than random chance would predict. "
-        "**Cramer's V** is its effect size (0-1): < 0.1 negligible, 0.1-0.3 small, 0.3-0.5 medium, > 0.5 large.  \n"
+        "Where the table has many small counts, small categories are combined (or a Monte Carlo p-value is used) so the test stays valid. "
+        + CRAMERS_NOTE + "  \n"
         "- **Kruskal-Wallis H test** → used when one feature is a category and the other is a number (e.g., country × price). "
         "It's a non-parametric alternative to ANOVA — it asks \"do these groups have different distributions?\" without assuming the data is normally distributed. "
-        "**Epsilon-squared** is its effect size (0-1): < 0.01 negligible, 0.01-0.06 small, 0.06-0.14 medium, > 0.14 large.  \n"
-        "- **Avg Cramer's V** → used when one feature is a list (e.g., flavors) and the other is a category. "
-        "Each individual flavor is tested for association with the category, then the results are averaged across all flavors.  \n\n"
-        "Effect size tells you *how strong* the relationship is, while the p-value just tells you whether it's *real* (not due to chance)."
+        + ETA2_NOTE + "  \n"
+        "- **Mean Cramér's V** → used when one feature is a list (e.g., flavors) and the other is a category. "
+        "Each individual flavor is tested for association with the category, then the effect sizes are averaged across the flavors tested "
+        "(no single p-value).  \n\n"
+        "Effect size tells you *how strong* the relationship is. The **q-value** is the p-value adjusted for the number of "
+        "pairs tested; q < 0.05 is treated as significant."
     )
 
 
@@ -161,25 +193,33 @@ def _render_cooccurrence(data: Dict[str, Any]):
                     y='pmi',
                     title=f"Top Surprising Flavor Pairs ({level} Level)",
                     labels={'x': 'Flavor Pair', 'pmi': 'PMI Score'},
-                    text=surp_df['cooccurrence_count'].apply(lambda x: f'n={x}'),
+                    text=surp_df['cooccurrence_count'].apply(lambda x: f'n={fmt_n(x)}'),
                     color='pmi',
                     color_continuous_scale='Greens',
                 )
                 fig.update_layout(xaxis_tickangle=45, showlegend=False)
                 st.plotly_chart(fig, use_container_width=True)
 
-        if avoiding:
-            st.subheader("Rarely Co-occurring Pairs")
-            st.write("Flavor pairs that appear together **less** than expected:")
+        st.subheader("Rarely Co-occurring Pairs")
+        if avoiding and 'expected_count' in avoiding[0]:
+            st.write("Flavor pairs that appear together **less** than chance would predict "
+                     "(including pairs that never appear together):")
             for pair in avoiding[:8]:
                 f1 = pair.get('flavor_1', '')
                 f2 = pair.get('flavor_2', '')
-                pmi = pair.get('pmi', 0)
-                count = pair.get('cooccurrence_count', 0)
+                obs = pair.get('cooccurrence_count', 0)
+                exp = pair.get('expected_count', 0)
                 st.write(
-                    f"- **{f1}** + **{f2}** (PMI: {pmi:.2f}, "
-                    f"seen together in {count} coffees)"
+                    f"- **{f1}** + **{f2}**: together in {fmt_n(obs)} coffees, "
+                    f"vs about {exp:.0f} expected (q = {pair.get('q_value', 0):.1e})"
                 )
+            st.caption("All pairs of flavors listed in at least 3 coffees each were tested "
+                       "(one-sided Fisher exact test, corrected for multiple comparisons).")
+        elif avoiding:
+            st.info("Rarely-co-occurring pairs are not in this version of the cache yet. "
+                    "They will appear after the cache is regenerated.")
+        else:
+            st.info("No pairs of flavors appear together significantly less often than expected.")
 
     top_pairs = level_data.get('top_pairs_by_count', [])
     if top_pairs:
@@ -242,6 +282,13 @@ def _render_flavor_interactions(data: Dict[str, Any]):
         "\"emergent\" for that combination — the pairing creates something unexpected. "
         "The **Interaction Score** = observed rate - expected rate."
     )
+    st.caption(
+        "**How we test it:** for each combination and flavor we ask whether the observed number of coffees "
+        "with the flavor is more (or less) than the expected rate would produce (a binomial test). "
+        "Every combination-and-flavor tested at once is counted when adjusting for multiple comparisons "
+        "(Benjamini-Hochberg q-value; q < 0.05 is significant). "
+        "Combinations involving a varietal use single-varietal coffees only (coffees listing several varietals are left out)."
+    )
 
     interaction_type = st.selectbox(
         "Interaction type:",
@@ -302,7 +349,7 @@ def _render_flavor_interactions(data: Dict[str, Any]):
         st.subheader("Drill Down by Combination")
         combo_keys = sorted(profiles.keys(), key=lambda k: -profiles[k]['sample_size'])
         combo_labels = [
-            f"{k.replace('|', ' + ')} (n={profiles[k]['sample_size']})"
+            f"{k.replace('|', ' + ')} (n={fmt_n(profiles[k]['sample_size'])})"
             for k in combo_keys
         ]
         selected_idx = st.selectbox(
@@ -330,7 +377,7 @@ def _render_interaction_effects_chart(effects: List[Dict], effect_type: str, is_
         )
 
     df['label'] = df.apply(
-        lambda r: f"{r['combo']}: {r['flavor']} (n={r['sample_size']})", axis=1
+        lambda r: f"{r['combo']}: {r['flavor']} (n={fmt_n(r['sample_size'])})", axis=1
     )
 
     color_scale = 'Greens' if effect_type == 'emergent' else 'Reds'
@@ -350,7 +397,7 @@ def _render_interaction_effects_chart(effects: List[Dict], effect_type: str, is_
     # Table
     with st.expander("Detailed data"):
         table_cols = ['combo', 'flavor', 'observed_rate', 'expected_rate',
-                      'interaction_score', 'sample_size', 'is_significant']
+                      'interaction_score', 'sample_size', 'q_value', 'is_significant']
         available = [c for c in table_cols if c in df.columns]
         st.dataframe(
             df[available].rename(columns={
@@ -360,6 +407,7 @@ def _render_interaction_effects_chart(effects: List[Dict], effect_type: str, is_
                 'expected_rate': 'Expected Rate',
                 'interaction_score': 'Interaction',
                 'sample_size': 'N',
+                'q_value': 'q-value',
                 'is_significant': 'Significant?',
             }),
             hide_index=True,
@@ -384,7 +432,7 @@ def _render_combo_flavor_profile(profile: Dict, idata: Dict):
         y='observed_rate',
         title="Flavor Profile",
         labels={'observed_rate': 'Proportion', 'flavor': 'Flavor'},
-        text=fdf['count'].apply(lambda x: f'n={x}'),
+        text=fdf['count'].apply(lambda x: f'n={fmt_n(x)}'),
     )
     fig.update_layout(xaxis_tickangle=45, yaxis_tickformat='.0%')
     st.plotly_chart(fig, use_container_width=True)
@@ -411,6 +459,13 @@ def _render_price_interactions(data: Dict[str, Any]):
         "we calculate an expected price for Colombian Washed based on these individual prices and the "
         "global median. If the actual median is $9/lb, the +$1.50 difference is the \"interaction premium\" — "
         "the combination commands a price premium beyond what either feature alone explains."
+    )
+    st.caption(
+        "**How we test it:** a permutation test of the premium against this additive expectation: "
+        "we shuffle one feature among coffees many times (2,000 permutations) to see how often a premium this "
+        "large would appear by chance. The p-values are adjusted for the number of combinations tested "
+        "(Benjamini-Hochberg q-value; q < 0.05 is significant). "
+        "Combinations involving a varietal use single-varietal coffees only."
     )
 
     price_type = st.selectbox(
@@ -443,7 +498,7 @@ def _render_price_interactions(data: Dict[str, Any]):
     global_med = pdata.get('global_median_price', 0)
     st.caption(
         f"**{pdata.get('valid_combinations', 0)}** valid combinations | "
-        f"Global median: ${global_med:.2f}/lb"
+        f"Global median: ${global_med:.2f}/lb (price per lb = best per-lb price offered, usually the largest bag)"
     )
 
     # Top premiums
@@ -472,6 +527,7 @@ def _render_price_interactions(data: Dict[str, Any]):
                 'median_price': 'Median $/lb',
                 'expected_price': 'Expected $/lb',
                 'price_premium': 'Premium',
+                'q_value': 'q-value',
                 'is_significant': 'Significant?',
             }
             available = {k: v for k, v in display_cols.items() if k in cdf.columns}
@@ -491,7 +547,9 @@ def _render_price_effects_chart(effects: List[Dict], effect_type: str):
         lambda r: f"{r['feature_a_value']} + {r['feature_b_value']}", axis=1
     )
     df['label'] = df.apply(
-        lambda r: f"{r['combo']} (n={r['sample_size']}, ${r['median_price']:.2f}/lb)",
+        lambda r: f"{r['combo']} (n={fmt_n(r['sample_size'])}, ${r['median_price']:.2f}/lb"
+                  + (f", q={fmt_q(r['q_value'])}" if r.get('q_value') is not None and pd.notna(r.get('q_value')) else "")
+                  + ")",
         axis=1,
     )
 
