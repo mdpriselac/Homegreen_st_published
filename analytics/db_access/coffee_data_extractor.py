@@ -10,6 +10,7 @@ from supabase import create_client, Client
 from typing import Dict, List, Any, Optional, Tuple
 import pandas as pd
 import json
+import sys
 from datetime import datetime
 import numpy as np
 
@@ -51,6 +52,7 @@ class CoffeeDataExtractor:
             
         except Exception as e:
             st.error(f"Error extracting coffee attributes: {e}")
+            print(f"Error extracting coffee attributes: {e}", file=sys.stderr)
             attributes_df = pd.DataFrame()
         
         # Step 2: Pull coffee-seller mapping with temporal data
@@ -82,6 +84,7 @@ class CoffeeDataExtractor:
             
         except Exception as e:
             st.error(f"Error extracting coffee-seller mapping: {e}")
+            print(f"Error extracting coffee-seller mapping: {e}", file=sys.stderr)
             coffee_seller_df = pd.DataFrame()
         
         return attributes_df, coffee_seller_df
@@ -292,7 +295,16 @@ class CoffeeDataExtractor:
         """
         # Extract raw data
         attributes_df, coffee_seller_df = self.extract_raw_data()
-        
+
+        # extract_raw_data swallows query errors; stop here rather than fail later in the
+        # merge with a misleading KeyError
+        if attributes_df.empty or coffee_seller_df.empty:
+            raise RuntimeError(
+                "No data from Supabase (coffee_attributes: %d rows, coffees: %d rows); "
+                "see the extraction errors above (e.g. a rejected API key)"
+                % (len(attributes_df), len(coffee_seller_df))
+            )
+
         # Merge and prepare
         merged_df = self.merge_and_prepare_data(attributes_df, coffee_seller_df)
         
